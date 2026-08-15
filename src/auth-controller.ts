@@ -162,6 +162,7 @@ function redactedFailure(method: LoginMethod, error: unknown): AuthControllerErr
 export class AuthController {
   private statusValue: AuthStatus = { state: 'disconnected' }
   private active: Attempt | undefined
+  private latest: Attempt | undefined
   private disposed = false
   private mutation: Promise<void> = Promise.resolve()
   private readonly now: () => number
@@ -345,10 +346,21 @@ export class AuthController {
         done: Promise.resolve(),
       }
       this.active = attempt
+      this.latest = attempt
       attempt.done = this.run(attempt)
       return { ready }
     })
     return pending.ready
+  }
+
+  /** Await completion of the latest named attempt for a direct headless caller. */
+  async waitForAttempt(attemptId: string): Promise<AuthStatus> {
+    const attempt = this.latest
+    if (attempt === undefined || attempt.id !== attemptId) {
+      throw new AuthControllerError('STALE_ATTEMPT', 'The OpenAI login attempt is no longer current.')
+    }
+    await attempt.done
+    return this.snapshot()
   }
 
   /** Cancel only the named current attempt and await provider cleanup. */

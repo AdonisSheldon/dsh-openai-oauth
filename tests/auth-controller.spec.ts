@@ -102,6 +102,23 @@ describe('AuthController', () => {
     await eventually(() => controller.snapshot().state === 'connected')
   })
 
+  it('lets the headless command await one named attempt without polling', async () => {
+    const result = deferred<OAuthCredential>()
+    const controller = new AuthController(await store(), {
+      login: async (interaction) => {
+        await interaction.prompt({ type: 'select', message: 'method', options: [] })
+        interaction.notify({ type: 'device_code', userCode: 'CODE', verificationUri: 'https://auth.openai.com/codex/device' })
+        return result.promise
+      },
+    })
+    const pending = await controller.start('device_code')
+
+    const completed = controller.waitForAttempt(pending.attemptId)
+    result.resolve(credential())
+
+    await expect(completed).resolves.toEqual({ state: 'connected' })
+  })
+
   it('makes a repeated method idempotent and conflicts with a different active method', async () => {
     const result = deferred<OAuthCredential>()
     const login = vi.fn(async (interaction: AuthInteraction) => {

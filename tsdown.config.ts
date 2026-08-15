@@ -2,7 +2,7 @@ import { defineConfig } from 'tsdown'
 
 export default defineConfig([
   {
-    entry: ['src/index.ts', 'src/login.ts'],
+    entry: { index: 'src/index.ts', login: 'src/login-main.ts' },
     outDir: 'lib',
     format: ['esm'],
     platform: 'node',
