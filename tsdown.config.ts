@@ -9,6 +9,8 @@ export default defineConfig([
     target: 'node22',
     dts: true,
     clean: true,
+    fixedExtension: false,
+    hash: false,
   },
   {
     entry: { client: 'src/client/index.tsx' },
