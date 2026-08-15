@@ -1,0 +1,3 @@
+- insert:
+    - id: llm-openai-codex-oauth
+      name: dsh-openai-codex-oauth
