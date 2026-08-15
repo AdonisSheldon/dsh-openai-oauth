@@ -43,13 +43,13 @@ describe('standalone plugin lifecycle', () => {
     expect(ctx.llm.listProviders()).toEqual([])
   })
 
-  it('registers and removes the local Web route through the same plugin fiber', async () => {
+  it('registers a Web route when the optional Host arrives after the plugin', async () => {
     vi.stubEnv('DSH_HOME', await home())
     const ctx = new Context()
     contexts.push(ctx)
     await ctx.plugin(LlmRuntime)
-    await ctx.plugin(WebServer, { host: '127.0.0.1', port: 0 })
     const fiber = await ctx.plugin(Plugin)
+    await ctx.plugin(WebServer, { host: '127.0.0.1', port: 0 })
     const origin = `http://127.0.0.1:${ctx.webServer.port}`
 
     const live = await fetch(`${origin}${OAUTH_ROUTE_PATH}/status`)

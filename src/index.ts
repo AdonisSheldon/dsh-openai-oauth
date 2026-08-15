@@ -65,28 +65,20 @@ export function assertLocalWebHost(host: WebServer['host']): void {
   }
 }
 
-/** Register the direct adapter and optional local Web control route as one reversible effect. */
+/** Register the direct adapter and activate the local route whenever a Web Host is present. */
 export function apply(ctx: Context): void {
   const runtime = createPluginRuntime({ attachments: () => ctx.get('attachments') })
   ctx.effect(() => {
     const disposeAdapter = ctx.llm.registerAdapter([OPENAI_CODEX_PROVIDER], runtime.adapter)
-    let disposeRoute = (): void => {}
-    try {
-      const web = ctx.get('webServer')
-      if (web !== undefined) {
-        assertLocalWebHost(web.host)
-        disposeRoute = web.register(oauthRoute(runtime.controller, async () => (
-          await runtime.adapter.listModels(OPENAI_CODEX_PROVIDER)
-        ).map(model => ({ id: model.id, name: model.name }))))
-      }
-    } catch (error) {
-      disposeAdapter()
-      throw error
-    }
     return async () => {
-      disposeRoute()
       disposeAdapter()
       await runtime.controller.dispose()
     }
-  }, 'dsh-openai-codex-oauth: adapter and local route')
+  }, 'dsh-openai-codex-oauth: adapter and controller')
+  ctx.inject(['webServer'], (routeCtx) => {
+    assertLocalWebHost(routeCtx.webServer.host)
+    return routeCtx.webServer.register(oauthRoute(runtime.controller, async () => (
+      await runtime.adapter.listModels(OPENAI_CODEX_PROVIDER)
+    ).map(model => ({ id: model.id, name: model.name }))))
+  })
 }
