@@ -3,9 +3,8 @@ import { isIP } from 'node:net'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
 import type { AuthStatus, LoginMethod, PendingStatus } from './auth-controller.js'
 import { AuthControllerError } from './auth-controller.js'
-
-/** Exact local route family owned by this plugin. */
-export const OAUTH_ROUTE_PATH = '/api/plugins/openai-codex-oauth'
+import { OAUTH_ROUTE_PATH } from './protocol.js'
+export { OAUTH_ROUTE_PATH } from './protocol.js'
 const MAX_BODY_BYTES = 4096
 
 export interface OAuthHttpController {
