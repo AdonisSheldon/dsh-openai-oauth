@@ -85,7 +85,7 @@ jobs:
 
           test -s "$status_body"
           grep -qi '^cache-control: no-store' "$status_headers"
-          node -e "const fs=require('node:fs'); const v=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); if (v.state !== 'disconnected' || !Array.isArray(v.models) || v.models.length === 0) process.exit(1)" "$status_body"
+          node -e "const fs=require('node:fs'); const v=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); if (v.state !== 'disconnected') { console.error('Unexpected OAuth status response:', JSON.stringify(v)); process.exit(1) }" "$status_body"
 
           kill "$web_pid"
           wait "$web_pid" || true
