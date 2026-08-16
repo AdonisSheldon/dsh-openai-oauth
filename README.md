@@ -42,25 +42,13 @@ dsh plugin --profile web add dsh-openai-oauth@0.1.0
 dsh --profile web --dump-config
 ```
 
-### Install with a coding agent
+### Install with an Agent (recommended)
 
-Copy the following prompt to an agent that can use your terminal. The commands use a globally installed `dsh`; when the agent is working from a DeepSeek Harness source checkout, it should substitute `pnpm dsh` consistently.
+Give this address to an Agent and ask it to follow the runbook:
 
-```text
-Install dsh-openai-oauth into the DeepSeek Harness web profile as an external plugin.
+`https://raw.githubusercontent.com/AdonisSheldon/dsh-openai-oauth/main/AGENTS.md`
 
-Requirements:
-1. Do not modify or commit files in the DeepSeek Harness source tree. Do not copy this plugin into that repository and do not manually edit its cordis.yml or profile package files.
-2. Check `node --version`, `pnpm --version`, and the available DSH launcher. This plugin requires Node.js ^22.19.0 or >=24.0.0 and DeepSeek Harness 0.1.0-rc.6. If the installed Harness version differs, stop and report the mismatch instead of patching Harness.
-3. Use `dsh` when it is installed globally. If only a Harness source checkout is available, use `pnpm dsh` for every DSH command.
-4. Install with `<dsh-launcher> plugin --profile web add github:AdonisSheldon/dsh-openai-oauth`. If I supplied a tag or commit, append it to the GitHub spec as `#<tag-or-commit>`. Do not approve unrelated install scripts or broaden filesystem permissions.
-5. Verify with `<dsh-launcher> web --dump-config` and confirm that the output contains `dsh-openai-oauth`.
-6. If DSH Web is already running, do not start a second process on port 3080. Restart only a DSH process that you started or control; otherwise tell me that one restart is required.
-7. Do not sign in to ChatGPT for me or print credentials. After installation, tell me to open Settings -> OpenAI OAuth, choose Browser login or Device Code, and complete the login myself.
-8. If installation or verification fails, return the exact command and error. Do not work around the failure by changing DeepSeek Harness source code.
-
-Finish with the installed profile, package source, verification result, and whether a restart is still required.
-```
+When it finishes, you only need to approve any DSH restart and complete the ChatGPT login yourself.
 
 Restart a running DSH Web process after installation.
 
