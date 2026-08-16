@@ -2,7 +2,9 @@
 
 [English](README.md) | 中文
 
-这是一个非官方、可独立安装的 DeepSeek Harness 插件，通过 ChatGPT 账号 OAuth 提供 pi-ai 的 `openai-codex` 模型。它保留 Harness 的 agent loop（智能体循环）、工具、提示词、会话回放和模型选择，不会启动 Codex App Server，也不会创建由提供方管理的第二段对话。
+这是一个非官方、可独立安装的 DeepSeek Harness 插件，通过 ChatGPT 账号 OAuth 连接 `openai-codex` 模型提供方。它保留 Harness 的 agent loop（智能体循环）、工具、提示词、会话回放和模型选择，不会启动 Codex App Server、运行 pi agent，也不会创建由提供方管理的第二段对话。
+
+插件独立安装、配置和发布。它在内部把 `@earendil-works/pi-ai` 用作 OAuth 与模型传输库，但不会集成 pi agent 进程、配置、对话或凭据存储。
 
 这种授权用于通过 ChatGPT 账号访问 Codex 模型提供方。它不是 OpenAI API OAuth，不会配置普通 `openai` 提供方，也不能提供该账号本身没有的模型或额度。
 
@@ -80,16 +82,16 @@ pnpm --dir ~/.dsh/profiles/web exec dsh-openai-login --device-code
 
 凭据保存在 `$DSH_HOME/plugins/dsh-openai-oauth/credentials.json` 中（Harness 默认主目录是 `~/.dsh`）。插件在支持的 POSIX 文件系统上强制目录和文件仅限所有者访问，拒绝符号链接凭据目标，串行化跨进程更新，并原子替换带版本的文件。文件没有静态加密；请保护操作系统账号和 Harness 主目录。
 
-pi-ai 会向 OpenAI 发送 OAuth 凭据和模型请求。Web 路由只返回脱敏连接状态、模型 id、浏览器授权 URL 或设备代码说明；它拒绝非环回请求和跨源写操作，也不会启用 CORS。会话日志包含模型可见的对话数据和回放元数据，但不包含 OAuth 凭据。
+插件内部的提供方库会向 OpenAI 发送 OAuth 凭据和模型请求。Web 路由只返回脱敏连接状态、模型 id、浏览器授权 URL 或设备代码说明；它拒绝非环回请求和跨源写操作，也不会启用 CORS。会话日志包含模型可见的对话数据和回放元数据，但不包含 OAuth 凭据。
 
 报告漏洞或部署插件前，请阅读 [SECURITY.md](SECURITY.md)。
 
 ## 限制
 
-- 浏览器登录需要 pi-ai 固定的回调端口 `1455`；端口不可用时请选择设备代码。
+- 浏览器登录需要当前提供方库固定的回调端口 `1455`；端口不可用时请选择设备代码。
 - OpenAI 可以独立修改非官方 Codex OAuth 协议或账号策略。
-- 插件会拒绝 `maxTokens` 和停止序列，因为 pi-ai 的 Codex 传输无法忠实地提供这些请求控制。
-- 推理选项只列出所选 pi-ai 模型支持的值；本版本不会展示传输层无法保证的 `off` 设置。
+- 插件会拒绝 `maxTokens` 和停止序列，因为当前 Codex 传输无法忠实地提供这些请求控制。
+- 推理选项只列出当前模型传输支持的值；本版本不会展示传输层无法保证的 `off` 设置。
 
 ## 移除
 

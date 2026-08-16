@@ -2,7 +2,9 @@
 
 English | [中文](README.zh.md)
 
-An unofficial, self-contained DeepSeek Harness plugin that exposes pi-ai's `openai-codex` models through ChatGPT account OAuth. It keeps the Harness agent loop, tools, prompts, session replay, and model selection; it does not start Codex App Server or create a second provider-owned conversation.
+An unofficial, self-contained DeepSeek Harness plugin that connects a ChatGPT account to the `openai-codex` model provider through OAuth. It keeps the Harness agent loop, tools, prompts, session replay, and model selection; it does not start Codex App Server, run pi agent, or create a second provider-owned conversation.
+
+The plugin is installed, configured, and released independently. It uses `@earendil-works/pi-ai` as an internal OAuth and model-transport library, but it does not integrate with a pi agent process, configuration, conversation, or credential store.
 
 This is ChatGPT account authorization for the Codex model provider. It is not OpenAI API OAuth, does not configure the ordinary `openai` provider, and cannot grant models or quota absent from the signed-in account.
 
@@ -80,16 +82,16 @@ When `DSH_HOME` is customized, use its matching profile directory and keep that 
 
 Credentials are stored in `$DSH_HOME/plugins/dsh-openai-oauth/credentials.json` (`~/.dsh` is the default Harness home). The plugin enforces an owner-only directory and file on supported POSIX filesystems, refuses symbolic-link credential targets, serializes cross-process updates, and atomically replaces the versioned file. The file is not encrypted at rest; protect the operating-system account and Harness home.
 
-OAuth credentials and model requests are sent to OpenAI by pi-ai. The Web route returns only redacted connection state, model identifiers, the Browser authorization URL, or Device Code instructions. It rejects non-loopback requests and cross-origin mutations and does not enable CORS. Session logs contain model-visible conversation data and replay metadata, never OAuth credentials.
+The plugin's internal provider library sends OAuth credentials and model requests to OpenAI. The Web route returns only redacted connection state, model identifiers, the Browser authorization URL, or Device Code instructions. It rejects non-loopback requests and cross-origin mutations and does not enable CORS. Session logs contain model-visible conversation data and replay metadata, never OAuth credentials.
 
 See [SECURITY.md](SECURITY.md) before reporting a vulnerability or deploying the plugin.
 
 ## Limitations
 
-- Browser login requires the fixed pi-ai callback port `1455`; choose Device Code when it is unavailable.
+- Browser login requires the provider library's fixed callback port `1455`; choose Device Code when it is unavailable.
 - OpenAI can change the unofficial Codex OAuth protocol or account policy independently of this plugin.
-- `maxTokens` and stop sequences are rejected because pi-ai's Codex transport does not expose faithful request controls for them.
-- Reasoning choices list only values the selected pi-ai model supports; this release does not advertise an `off` setting that the transport cannot guarantee.
+- `maxTokens` and stop sequences are rejected because the current Codex transport does not expose faithful request controls for them.
+- Reasoning choices list only values the selected model transport supports; this release does not advertise an `off` setting that the transport cannot guarantee.
 
 ## Remove
 

@@ -4,15 +4,17 @@ Status: accepted
 
 ## Context
 
-DeepSeek Harness needs ChatGPT account access to pi-ai's `openai-codex` models without requiring users to patch the Harness agent or accept a fork of the main repository. OAuth state, token refresh, model streaming, Web presentation, and uninstall behavior must have one owner.
+DeepSeek Harness needs ChatGPT account access to the `openai-codex` model provider without requiring users to patch the Harness agent or accept a fork of the main repository. OAuth state, token refresh, model streaming, Web presentation, and uninstall behavior must have one plugin owner.
 
 ## Decision
 
-The standalone composition bundle owns the Cordis Host plugin, Web Client settings section, Browser and Device Code authorization controller, owner-only credential store, direct pi-ai-backed `LlmAdapter`, headless login command, tests, and release cadence. It uses only public exports from the exact DeepSeek Harness `0.1.0-rc.6` package set, Cordis `4.0.1`, and pi-ai `0.82.1`; the Harness repository contains no plugin-specific runtime code.
+The standalone composition bundle owns the Cordis Host plugin, Web Client settings section, Browser and Device Code authorization controller, owner-only credential store, `LlmAdapter`, headless login command, tests, and release cadence. It uses only public exports from the exact DeepSeek Harness `0.1.0-rc.6` package set and Cordis `4.0.1`. The Harness repository contains no plugin-specific runtime code.
+
+The implementation reuses `@earendil-works/pi-ai` `0.82.1` for OAuth and model transport. This is an internal library dependency, not an integration with pi agent: the plugin neither starts nor reads a pi agent process, configuration, conversation, or credential store.
 
 Cordis, React, pi-ai, and DSH packages are exact optional peers supplied by the compatible Harness host. The published plugin installs only its owned file-locking dependency and runs no installation lifecycle script. A package-contract test enforces this division, and CI installs the packed artifact into a clean published Harness host before booting and removing it.
 
-Each login attempt uses the user's explicit Browser or Device Code selection. Browser uses pi-ai's PKCE loopback callback; Device Code is the supported alternative for headless and callback-constrained environments. The plugin starts no Codex App Server and creates no provider-owned conversation, so Harness continues to own its agent loop and durable session history.
+Each login attempt uses the user's explicit Browser or Device Code selection. Browser uses the provider library's PKCE loopback callback; Device Code is the supported alternative for headless and callback-constrained environments. The plugin starts no Codex App Server or pi agent and creates no provider-owned conversation, so Harness continues to own its agent loop and durable session history.
 
 The credential file belongs to the plugin under `$DSH_HOME/plugins/dsh-openai-oauth`. Uninstall preserves that file unless the user logs out first. The Web route is local-only and exposes redacted status and public authorization instructions, never credentials.
 

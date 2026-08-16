@@ -1,4 +1,4 @@
-/** Direct pi-ai OpenAI Codex adapter. No Codex App Server or provider conversation is created. */
+/** OpenAI Codex adapter. No Codex App Server, pi agent, or provider conversation is created. */
 import type { AttachmentStore } from '@deepseek-ai/dsh-attachment'
 import {
   attributionHeaders,
