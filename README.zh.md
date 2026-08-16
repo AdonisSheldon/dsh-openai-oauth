@@ -23,16 +23,24 @@ Web 集成仅支持绑定到 `127.0.0.1` 的本地 Harness Host。本版本不�
 
 插件只使用兼容 DeepSeek Harness 发布版提供的公开运行时，不会修改、替换或要求改动 Harness 源码、agent loop 或已发布包。正常的 `dsh plugin add` 只会改变所选用户 profile 的状态，使 Harness 能解析这个包并应用其中的 `cordis.patch.yml` 组合层。
 
-Cordis、pi-ai、React 和 DSH 运行时包由 Harness 按精确兼容版本提供。插件只安装自己拥有的文件锁依赖，随包提供已经审查的 `lib/`，也没有安装生命周期脚本。因此，无论安装 tarball 还是固定 commit 的 GitHub 版本，都不需要 Harness 源码 checkout，也不需要批准包管理器构建脚本。CI 会打包仓库、把 tarball 安装到干净的 DSH `0.1.0-rc.6` 发布版、启动 Web profile、查询 OAuth 状态路由并卸载插件，以持续验证这项契约。
+Cordis、pi-ai、React 和 DSH 运行时包由 Harness 按精确兼容版本提供。插件只安装自己拥有的文件锁依赖，随包提供已经审查的 `lib/`，也没有安装生命周期脚本。因此，无论安装 tarball 还是固定 commit 的 GitHub 版本，都不需要 Harness 源码 checkout，也不需要批准包管理器构建脚本。CI 会打包仓库、把 tarball 安装到 DSH `0.1.0-rc.6` 发布版的干净 Web 和 headless profile、启动 Web profile、查询 OAuth 状态路由、运行已安装的登录命令并卸载插件，以持续验证这项契约。
 
 ## 安装
 
-把已发布的包安装到 Web profile：
+需要在 Harness 设置页登录时，把已发布的包安装到 Web profile：
 
 ```sh
 dsh plugin --profile web add dsh-openai-oauth@0.1.0
 dsh --profile web --dump-config
 dsh --profile web
+```
+
+只使用终端的 Harness 可以把同一个包安装到 headless profile，无需启动 Web server：
+
+```sh
+dsh plugin --profile headless add dsh-openai-oauth@0.1.0
+dsh --profile headless --dump-config
+pnpm --dir ~/.dsh/profiles/headless exec dsh-openai-login --device-code
 ```
 
 npm 正式发布前，可以从可信 checkout 构建 tarball，再安装这个不可变产物：
@@ -63,10 +71,11 @@ dsh plugin --profile web add github:YOUR_ACCOUNT/dsh-openai-oauth#COMMIT_SHA
 
 ## 在终端中登录
 
-安装步骤通过 `--dump-config` 或首次启动 Web 完成 DSH 运行时初始化后，从 profile 中运行已安装的命令；此时 Web 服务不需要继续运行。使用默认 Harness 主目录时：
+安装步骤通过 `--dump-config` 或首次启动 Web 完成所选 DSH profile 的初始化后，从该 profile 中运行已安装的命令；此时 Web 服务不需要继续运行。使用默认 Harness 主目录时，Web 和 headless 安装分别使用：
 
 ```sh
 pnpm --dir ~/.dsh/profiles/web exec dsh-openai-login
+pnpm --dir ~/.dsh/profiles/headless exec dsh-openai-login
 ```
 
 交互式命令会要求选择浏览器或设备代码。脚本和非交互终端必须明确指定：
@@ -99,6 +108,7 @@ pnpm --dir ~/.dsh/profiles/web exec dsh-openai-login --device-code
 
 ```sh
 dsh plugin --profile web remove dsh-openai-oauth
+dsh plugin --profile headless remove dsh-openai-oauth
 ```
 
 移除包会撤销适配器、路由和设置区，但会有意保留没有明确删除的插件凭据，避免卸载过程静默销毁账号状态。

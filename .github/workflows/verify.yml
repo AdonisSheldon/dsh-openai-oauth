@@ -92,3 +92,15 @@ jobs:
           trap - EXIT
           DSH_HOME="$dsh_home" "$host_root/node_modules/.bin/dsh" plugin --profile web remove dsh-openai-oauth
           test ! -e "$dsh_home/profiles/web/node_modules/.bin/dsh-openai-login"
+
+          headless_home="$RUNNER_TEMP/dsh-headless-home"
+          DSH_HOME="$headless_home" "$host_root/node_modules/.bin/dsh" plugin --profile headless add "$tarball"
+          headless_dump="$RUNNER_TEMP/headless-profile.yml"
+          DSH_HOME="$headless_home" "$host_root/node_modules/.bin/dsh" --profile headless --dump-config >"$headless_dump"
+          grep -q 'dsh-openai-oauth' "$headless_dump"
+          test -x "$headless_home/profiles/headless/node_modules/.bin/dsh-openai-login"
+          headless_help="$RUNNER_TEMP/headless-login-help.txt"
+          DSH_HOME="$headless_home" "$headless_home/profiles/headless/node_modules/.bin/dsh-openai-login" --help >"$headless_help"
+          grep -q '^Usage: dsh-openai-login' "$headless_help"
+          DSH_HOME="$headless_home" "$host_root/node_modules/.bin/dsh" plugin --profile headless remove dsh-openai-oauth
+          test ! -e "$headless_home/profiles/headless/node_modules/.bin/dsh-openai-login"

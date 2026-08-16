@@ -23,16 +23,24 @@ The Web integration supports only a local Harness Host bound to `127.0.0.1`. Rem
 
 The plugin uses only the public runtime exported by the compatible DeepSeek Harness release. It does not patch, replace, or require changes to the Harness source tree, agent loop, or published packages. The normal `dsh plugin add` command changes only the selected user's profile state so Harness can resolve the package and apply its `cordis.patch.yml` layer.
 
-Harness supplies Cordis, pi-ai, React, and DSH runtime packages at their exact compatible versions. The plugin installs only its owned file-locking dependency, ships reviewed `lib/` output, and defines no install lifecycle script. Consequently, installing the tarball or a pinned GitHub commit requires neither a source checkout nor package-manager build approval. CI verifies this contract by packing the repository, installing that tarball into a clean published DSH `0.1.0-rc.6` host, booting the Web profile, querying the OAuth status route, and uninstalling the package.
+Harness supplies Cordis, pi-ai, React, and DSH runtime packages at their exact compatible versions. The plugin installs only its owned file-locking dependency, ships reviewed `lib/` output, and defines no install lifecycle script. Consequently, installing the tarball or a pinned GitHub commit requires neither a source checkout nor package-manager build approval. CI verifies this contract by packing the repository, installing that tarball into clean Web and headless profiles on published DSH `0.1.0-rc.6`, booting the Web profile, querying the OAuth status route, exercising the installed login command, and uninstalling the package.
 
 ## Install
 
-Install a released package into the Web profile:
+Install a released package into the Web profile when Harness Settings should own login:
 
 ```sh
 dsh plugin --profile web add dsh-openai-oauth@0.1.0
 dsh --profile web --dump-config
 dsh --profile web
+```
+
+For a terminal-only Harness, install the same package into the headless profile and initialize it without starting a Web server:
+
+```sh
+dsh plugin --profile headless add dsh-openai-oauth@0.1.0
+dsh --profile headless --dump-config
+pnpm --dir ~/.dsh/profiles/headless exec dsh-openai-login --device-code
 ```
 
 Before an npm release exists, build a tarball from a trusted checkout and install that immutable artifact:
@@ -63,10 +71,11 @@ After the status becomes **Connected**, the stock Models settings can discover t
 
 ## Sign in from a terminal
 
-After the install sequence has initialized the DSH runtime with `--dump-config` or the first Web boot, run the installed command from the profile. The Web server does not need to remain running. With the default Harness home:
+After the install sequence has initialized the selected DSH profile with `--dump-config` or the first Web boot, run the installed command from that profile. The Web server does not need to remain running. With the default Harness home, Web and headless installs use these respective commands:
 
 ```sh
 pnpm --dir ~/.dsh/profiles/web exec dsh-openai-login
+pnpm --dir ~/.dsh/profiles/headless exec dsh-openai-login
 ```
 
 The interactive command asks for Browser or Device Code. Scripts and non-interactive terminals must choose explicitly:
@@ -99,6 +108,7 @@ Sign out in **OpenAI OAuth** settings first if the credential must be deleted, t
 
 ```sh
 dsh plugin --profile web remove dsh-openai-oauth
+dsh plugin --profile headless remove dsh-openai-oauth
 ```
 
 Removing the package withdraws the adapter, route, and settings section but intentionally preserves any plugin-owned credential that was not explicitly deleted. This prevents an uninstall from silently destroying account state.

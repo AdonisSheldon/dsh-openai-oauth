@@ -12,7 +12,7 @@ The standalone composition bundle owns the Cordis Host plugin, Web Client settin
 
 The implementation reuses `@earendil-works/pi-ai` `0.82.1` for OAuth and model transport. This is an internal library dependency, not an integration with pi agent: the plugin neither starts nor reads a pi agent process, configuration, conversation, or credential store.
 
-Cordis, React, pi-ai, and DSH packages are exact optional peers supplied by the compatible Harness host. The published plugin installs only its owned file-locking dependency and runs no installation lifecycle script. A package-contract test enforces this division, and CI installs the packed artifact into a clean published Harness host before booting and removing it.
+Cordis, React, pi-ai, and DSH packages are exact optional peers supplied by the compatible Harness host. The published plugin installs only its owned file-locking dependency and runs no installation lifecycle script. A package-contract test enforces this division, and CI installs the packed artifact into clean Web and headless profiles on a published Harness host before exercising and removing it.
 
 Each login attempt uses the user's explicit Browser or Device Code selection. Browser uses the provider library's PKCE loopback callback; Device Code is the supported alternative for headless and callback-constrained environments. The plugin starts no Codex App Server or pi agent and creates no provider-owned conversation, so Harness continues to own its agent loop and durable session history.
 
