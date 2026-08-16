@@ -108,11 +108,8 @@ function callbackPage(state: 'success' | 'error', message: string): string {
   const title = success ? 'OpenAI sign-in complete' : 'OpenAI sign-in failed'
   const heading = success ? 'Sign-in complete' : 'Sign-in failed'
   const status = success ? 'Callback verified' : 'Callback rejected'
-  const icon = success
-    ? '<path d="m7.5 12.5 3 3 6-7"/>'
-    : '<path d="m8 8 8 8m0-8-8 8"/>'
   return `<!doctype html>
-<html lang="en" data-page="oauth-callback" data-state="${state}">
+<html lang="en" data-page="oauth-callback" data-state="${state}" data-layout="flat">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -120,15 +117,11 @@ function callbackPage(state: 'success' | 'error', message: string): string {
   <link rel="icon" href="data:,">
   <title>${title}</title>
   <style>
-    :root { color-scheme: light dark; --page: #f9fafb; --surface: #fff; --text: #0f1115;
-      --secondary: #61666b; --tertiary: #81858c; --border: rgba(0, 0, 0, .1); --badge: #f5f6f7;
-      --success: #22c55e; --success-soft: #e6faed; --error: #ec1313; --error-soft: #fef2f2;
-      --shadow: 0 20px 48px rgba(15, 17, 21, .08); }
+    :root { color-scheme: light dark; --page: #f9fafb; --text: #0f1115; --secondary: #61666b;
+      --tertiary: #81858c; --border: rgba(0, 0, 0, .1); --success: #22a559; --error: #e5484d; }
     @media (prefers-color-scheme: dark) {
-      :root { --page: #151517; --surface: #232324; --text: #f9fafb; --secondary: #cfd3d6;
-        --border: rgba(255, 255, 255, .12); --badge: #353638; --success: #4ed17e;
-        --success-soft: #233c2c; --error: #f25a5a; --error-soft: #570c0c;
-        --shadow: 0 24px 56px rgba(0, 0, 0, .32); }
+      :root { --page: #151517; --text: #f5f6f7; --secondary: #c4c7ca; --tertiary: #8b8e93;
+        --border: rgba(255, 255, 255, .12); --success: #4ecb7b; --error: #f06a6a; }
     }
     * { box-sizing: border-box; }
     html, body { min-height: 100%; }
@@ -137,52 +130,37 @@ function callbackPage(state: 'success' | 'error', message: string): string {
         'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
       -webkit-font-smoothing: antialiased; }
     .shell { width: min(420px, 100%); }
-    .card { overflow: hidden; border: 1px solid var(--border); border-radius: 24px;
-      background: var(--surface); box-shadow: var(--shadow); }
-    .brand { display: flex; align-items: center; gap: 8px; min-height: 58px; padding: 0 24px;
-      border-bottom: 1px solid var(--border); font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
-    .brand-mark { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 8px;
-      background: var(--text); color: var(--surface); font-size: 12px; font-weight: 700; }
-    .brand-badge { padding: 3px 7px; border-radius: 6px; background: var(--badge);
-      color: var(--secondary); font-size: 10px; font-weight: 600; letter-spacing: .06em; }
-    .content { padding: 32px 32px 30px; }
-    .state-icon { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 24px;
-      border-radius: 16px; background: var(--success-soft); color: var(--success); }
-    html[data-state='error'] .state-icon { background: var(--error-soft); color: var(--error); }
-    .state-icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2;
-      stroke-linecap: round; stroke-linejoin: round; }
-    .eyebrow { margin: 0 0 8px; color: var(--tertiary); font-size: 11px; font-weight: 600; letter-spacing: .08em; }
-    h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: 1.35; letter-spacing: -.02em; }
-    .message { margin: 12px 0 0; color: var(--secondary); font-size: 14px; line-height: 1.65; }
-    .status { display: flex; align-items: center; gap: 8px; margin-top: 28px; padding-top: 18px;
-      border-top: 1px solid var(--border); color: var(--secondary); font-size: 13px; }
+    .brand { display: flex; align-items: center; gap: 7px; margin-bottom: 38px; color: var(--secondary);
+      font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+    .brand-badge { padding-left: 7px; border-left: 1px solid var(--border); color: var(--tertiary);
+      font-size: 10px; font-weight: 600; letter-spacing: .06em; }
+    .content { padding-top: 26px; border-top: 1px solid var(--border); }
+    .eyebrow { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; color: var(--secondary);
+      font-size: 12px; font-weight: 500; }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
     html[data-state='error'] .status-dot { background: var(--error); }
-    .footnote { margin: 14px 0 0; color: var(--tertiary); font-size: 11px; line-height: 1.5; text-align: center; }
+    h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: 1.35; letter-spacing: -.02em; }
+    .message { margin: 10px 0 0; color: var(--secondary); font-size: 14px; line-height: 1.65; }
+    .footnote { margin: 30px 0 0; padding-top: 16px; border-top: 1px solid var(--border);
+      color: var(--tertiary); font-size: 11px; line-height: 1.5; }
     @media (max-width: 480px) {
       body { padding: 16px; }
-      .card { border-radius: 20px; }
-      .content { padding: 28px 24px 26px; }
+      .brand { margin-bottom: 30px; }
     }
   </style>
 </head>
 <body>
   <main class="shell" aria-labelledby="callback-title">
-    <section class="card">
-      <header class="brand" aria-label="DeepSeek Harness">
-        <span class="brand-mark" aria-hidden="true">D</span>
-        <span>deepseek</span>
-        <span class="brand-badge">HARNESS</span>
-      </header>
-      <div class="content">
-        <div class="state-icon" aria-hidden="true"><svg viewBox="0 0 24 24">${icon}</svg></div>
-        <p class="eyebrow">OPENAI OAUTH</p>
-        <h1 id="callback-title">${heading}</h1>
-        <p class="message">${escapeHtml(message)}</p>
-        <div class="status" role="status"><span class="status-dot" aria-hidden="true"></span>${status}</div>
-      </div>
+    <header class="brand" aria-label="DeepSeek Harness">
+      <span>deepseek</span>
+      <span class="brand-badge">HARNESS</span>
+    </header>
+    <section class="content">
+      <p class="eyebrow" role="status"><span class="status-dot" aria-hidden="true"></span>${status}</p>
+      <h1 id="callback-title">${heading}</h1>
+      <p class="message">${escapeHtml(message)}</p>
+      <p class="footnote">OpenAI OAuth · local one-time callback</p>
     </section>
-    <p class="footnote">Local one-time callback · localhost</p>
   </main>
 </body>
 </html>`

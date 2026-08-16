@@ -23,21 +23,28 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 
 const styles: Record<string, CSSProperties> = {
-  section: { maxWidth: 720, padding: '0 0 32px' },
-  title: { fontSize: 20, lineHeight: 1.3, margin: '0 0 8px' },
-  intro: { color: 'var(--color-text-secondary, #667085)', lineHeight: 1.55, margin: '0 0 20px' },
-  panel: { border: '1px solid var(--color-border, #d0d5dd)', borderRadius: 10, padding: 20 },
-  heading: { fontSize: 14, margin: '0 0 10px' },
-  status: { display: 'flex', alignItems: 'center', gap: 8, minHeight: 24, fontWeight: 600 },
-  dot: { width: 9, height: 9, borderRadius: '50%', flex: '0 0 auto' },
-  fieldset: { border: 0, borderTop: '1px solid var(--color-border, #e4e7ec)', margin: '20px 0 0', padding: '18px 0 0' },
+  section: { display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 720, padding: '0 0 32px', color: 'var(--dsw-alias-label-primary)' },
+  title: { fontSize: 18, fontWeight: 600, lineHeight: '24px', margin: 0 },
+  intro: { color: 'var(--dsw-alias-label-tertiary)', fontSize: 13, lineHeight: '20px', margin: 0 },
+  panel: { display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 },
+  statusSummary: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, minHeight: 36, paddingBottom: 16, borderBottom: '1px solid var(--dsw-alias-border-l2)' },
+  heading: { fontSize: 14, fontWeight: 500, lineHeight: '22px', margin: 0 },
+  status: { display: 'flex', alignItems: 'center', gap: 8, minHeight: 22, fontSize: 13, color: 'var(--dsw-alias-label-secondary)' },
+  dot: { width: 8, height: 8, borderRadius: '50%', flex: '0 0 auto' },
+  fieldset: { border: 0, margin: 0, padding: 0 },
   choice: { display: 'grid', gridTemplateColumns: '20px minmax(0, 1fr)', gap: '2px 8px', marginTop: 12, cursor: 'pointer' },
-  choiceHelp: { color: 'var(--color-text-secondary, #667085)', fontSize: 13, lineHeight: 1.45, gridColumn: '2' },
-  actions: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 18 },
-  pending: { background: 'var(--color-surface-subtle, #f8fafc)', borderRadius: 8, marginTop: 18, padding: 14, lineHeight: 1.5 },
-  code: { display: 'inline-block', fontSize: 20, fontWeight: 700, letterSpacing: '0.08em', margin: '8px 0' },
-  error: { color: 'var(--color-danger, #b42318)', margin: '14px 0 0' },
-  secondary: { color: 'var(--color-text-secondary, #667085)', fontSize: 13 },
+  choiceHelp: { color: 'var(--dsw-alias-label-tertiary)', fontSize: 12, lineHeight: '18px', gridColumn: '2' },
+  actions: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
+  pending: { display: 'flex', flexDirection: 'column', gap: 14, background: 'var(--dsw-alias-bg-module-platform)', borderRadius: 12, padding: '14px 16px' },
+  pendingLead: { display: 'grid', gridTemplateColumns: '10px minmax(0, 1fr)', alignItems: 'start', gap: 10 },
+  pendingDot: { width: 8, height: 8, marginTop: 6, borderRadius: '50%', background: 'var(--dsw-alias-state-business-primary)' },
+  pendingTitle: { fontSize: 14, fontWeight: 500, lineHeight: '22px', margin: 0 },
+  pendingHelp: { color: 'var(--dsw-alias-label-tertiary)', fontSize: 12, lineHeight: '18px', margin: '2px 0 0' },
+  pendingActions: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingLeft: 20 },
+  primaryLink: { boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 36, padding: '0 14px', borderRadius: 18, background: 'var(--dsw-alias-button-primary-fill)', color: 'var(--dsw-alias-label-primary-foreground)', fontSize: 14, lineHeight: '22px', textDecoration: 'none' },
+  code: { display: 'inline-block', padding: '4px 8px', borderRadius: 6, background: 'var(--dsw-alias-bg-layer-3)', color: 'var(--dsw-alias-label-primary)', fontSize: 18, fontWeight: 600, letterSpacing: '0.08em', margin: '8px 0' },
+  error: { color: 'var(--dsw-alias-state-error-primary)', fontSize: 12, lineHeight: '18px', margin: 0 },
+  secondary: { color: 'var(--dsw-alias-label-tertiary)', fontSize: 12, lineHeight: '18px', margin: '6px 0 0' },
 }
 
 async function hostRequest<T>(path: string, body?: unknown): Promise<T> {
@@ -146,17 +153,31 @@ export function OpenAiOAuthSection({ t }: OpenAiOAuthSectionProps): ReactNode {
   const connected = status?.state === 'connected'
   const statusText = status === undefined
     ? t('loading')
-    : connected ? t('connected') : status.state === 'failed' ? t('failed') : t('disconnected')
-  const statusColor = connected ? '#079455' : status?.state === 'failed' ? '#d92d20' : '#98a2b3'
+    : connected
+      ? t('connected')
+      : status.state === 'pending'
+        ? t('pending')
+        : status.state === 'failed'
+          ? t('failed')
+          : t('disconnected')
+  const statusColor = connected
+    ? 'var(--dsw-alias-state-success-primary)'
+    : status?.state === 'failed'
+      ? 'var(--dsw-alias-state-error-primary)'
+      : status === undefined
+        ? 'var(--dsw-alias-state-business-primary)'
+        : 'var(--dsw-alias-label-caption)'
   return (
     <section style={styles.section} aria-labelledby="openai-oauth-title">
       <h2 id="openai-oauth-title" style={styles.title}>{t('title')}</h2>
       <p style={styles.intro}>{t('intro')}</p>
       <div style={styles.panel}>
-        <h3 style={styles.heading}>{t('status')}</h3>
-        <div style={styles.status} role="status" aria-live="polite">
-          <span aria-hidden="true" style={{ ...styles.dot, background: statusColor }} />
-          {statusText}
+        <div style={styles.statusSummary}>
+          <h3 style={styles.heading}>{t('status')}</h3>
+          <div style={styles.status} role="status" aria-live="polite">
+            <span aria-hidden="true" style={{ ...styles.dot, background: statusColor }} />
+            {statusText}
+          </div>
         </div>
 
         {!connected && status?.state !== 'pending' ? (
@@ -176,18 +197,39 @@ export function OpenAiOAuthSection({ t }: OpenAiOAuthSectionProps): ReactNode {
         ) : null}
 
         {status?.state === 'pending' ? (
-          <div style={styles.pending} aria-live="polite">
+          <div style={styles.pending} data-oauth-state="pending" aria-live="polite">
             {status.method === 'browser' ? (
               <>
-                <p>{t('browserWaiting')}</p>
-                <a href={status.browser.authorizationUrl} target="_blank" rel="noreferrer">{t('continueBrowser')}</a>
+                <div style={styles.pendingLead}>
+                  <span style={styles.pendingDot} aria-hidden="true" />
+                  <div>
+                    <p style={styles.pendingTitle}>{t('browserWaiting')}</p>
+                    <p style={styles.pendingHelp}>{t('browserWaitingHelp')}</p>
+                  </div>
+                </div>
+                <div style={styles.pendingActions}>
+                  <a style={styles.primaryLink} href={status.browser.authorizationUrl} target="_blank" rel="noreferrer">
+                    {t('continueBrowser')} <span aria-hidden="true">↗</span>
+                  </a>
+                  <Button variant="ghost" disabled={busy} onClick={() => { void cancel() }}>{t('cancel')}</Button>
+                </div>
               </>
             ) : (
               <>
-                <p>{t('deviceInstructions')}</p>
-                <code style={styles.code}>{status.deviceCode.userCode}</code><br />
-                <a href={status.deviceCode.verificationUri} target="_blank" rel="noreferrer">{t('openVerification')}</a>
-                <p style={styles.secondary}>{t('expires', { time: new Date(status.deviceCode.expiresAt).toLocaleTimeString() })}</p>
+                <div style={styles.pendingLead}>
+                  <span style={styles.pendingDot} aria-hidden="true" />
+                  <div>
+                    <p style={styles.pendingTitle}>{t('deviceInstructions')}</p>
+                    <code style={styles.code}>{status.deviceCode.userCode}</code>
+                    <p style={styles.secondary}>{t('expires', { time: new Date(status.deviceCode.expiresAt).toLocaleTimeString() })}</p>
+                  </div>
+                </div>
+                <div style={styles.pendingActions}>
+                  <a style={styles.primaryLink} href={status.deviceCode.verificationUri} target="_blank" rel="noreferrer">
+                    {t('openVerification')} <span aria-hidden="true">↗</span>
+                  </a>
+                  <Button variant="ghost" disabled={busy} onClick={() => { void cancel() }}>{t('cancel')}</Button>
+                </div>
               </>
             )}
           </div>
@@ -197,12 +239,12 @@ export function OpenAiOAuthSection({ t }: OpenAiOAuthSectionProps): ReactNode {
         {error === undefined ? null : <p style={styles.error} role="alert">{error}</p>}
 
         <div style={styles.actions}>
-          {connected
+          {status?.state === 'pending' ? null : connected
             ? <Button variant="outline" disabled={busy} onClick={() => { void logout() }}>{t('signOut')}</Button>
-            : status?.state === 'pending'
-              ? <Button variant="outline" disabled={busy} onClick={() => { void cancel() }}>{t('cancel')}</Button>
-              : <Button variant="primary" disabled={busy || status === undefined} onClick={() => { void start() }}>{t('signIn')}</Button>}
-          <Button variant="outline" disabled={busy} onClick={() => { void refresh() }}>{t('refresh')}</Button>
+            : <Button variant="primary" disabled={busy || status === undefined} onClick={() => { void start() }}>{t('signIn')}</Button>}
+          {status?.state === 'pending' ? null : (
+            <Button variant="ghost" disabled={busy} onClick={() => { void refresh() }}>{t('refresh')}</Button>
+          )}
         </div>
       </div>
     </section>

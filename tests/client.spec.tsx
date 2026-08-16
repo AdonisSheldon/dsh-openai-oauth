@@ -89,11 +89,18 @@ describe('OpenAI OAuth settings section', () => {
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
 
     await screen.findByText('Waiting for the loopback callback…')
+    expect(screen.getByRole('status').textContent).toContain('Sign-in in progress')
     expect(open).toHaveBeenCalledWith('about:blank', '_blank')
     expect(popup.opener).toBeNull()
     expect(popup.location.href).toBe('https://auth.openai.com/oauth/authorize?state=public')
     expect(screen.getByRole('link', { name: 'Continue in browser' }).getAttribute('href'))
       .toBe('https://auth.openai.com/oauth/authorize?state=public')
+
+    const pending = screen.getByText('Waiting for the loopback callback…').closest('[data-oauth-state="pending"]')
+    expect(pending).not.toBeNull()
+    expect((pending as HTMLElement).style.background).toBe('var(--dsw-alias-bg-module-platform)')
+    expect((pending as HTMLElement).style.border).toBe('')
+    expect(screen.queryByRole('button', { name: 'Refresh status' })).toBeNull()
   })
 
   it('renders connected status and performs explicit logout', async () => {
