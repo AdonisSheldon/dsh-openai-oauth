@@ -23,17 +23,15 @@ Version `0.1.0` supports macOS and Linux. Windows support is not included yet.
 
 ## Install
 
-### From the current checkout
+### Install with an Agent (recommended)
 
-```sh
-pnpm install --frozen-lockfile
-pnpm run check
-pnpm pack
-dsh plugin --profile web add ./dsh-openai-oauth-0.1.0.tgz
-dsh --profile web --dump-config
-```
+Give this address to an Agent and ask it to follow the runbook:
 
-### From npm
+`https://raw.githubusercontent.com/AdonisSheldon/dsh-openai-oauth/main/AGENTS.md`
+
+When it finishes, you only need to approve any DSH restart and complete the ChatGPT login yourself.
+
+### Install with DSH
 
 After the package is published:
 
@@ -42,13 +40,15 @@ dsh plugin --profile web add dsh-openai-oauth@0.1.0
 dsh --profile web --dump-config
 ```
 
-### Install with an Agent (recommended)
+### Install from the current checkout
 
-Give this address to an Agent and ask it to follow the runbook:
-
-`https://raw.githubusercontent.com/AdonisSheldon/dsh-openai-oauth/main/AGENTS.md`
-
-When it finishes, you only need to approve any DSH restart and complete the ChatGPT login yourself.
+```sh
+pnpm install --frozen-lockfile
+pnpm run check
+pnpm pack
+dsh plugin --profile web add ./dsh-openai-oauth-0.1.0.tgz
+dsh --profile web --dump-config
+```
 
 Restart a running DSH Web process after installation.
 

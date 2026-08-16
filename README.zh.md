@@ -23,6 +23,23 @@
 
 ## 安装
 
+### 使用 Agent 安装（推荐）
+
+向 Agent 发送以下地址，并让它按照操作清单完成安装：
+
+`https://raw.githubusercontent.com/AdonisSheldon/dsh-openai-oauth/main/AGENTS.md`
+
+安装结束后，你只需决定是否重启 DSH，并亲自完成 ChatGPT 登录。
+
+### DSH 命令安装
+
+包发布后执行：
+
+```sh
+dsh plugin --profile web add dsh-openai-oauth@0.1.0
+dsh --profile web --dump-config
+```
+
 ### 从当前 checkout 安装
 
 ```sh
@@ -32,23 +49,6 @@ pnpm pack
 dsh plugin --profile web add ./dsh-openai-oauth-0.1.0.tgz
 dsh --profile web --dump-config
 ```
-
-### 从 npm 安装
-
-包发布后执行：
-
-```sh
-dsh plugin --profile web add dsh-openai-oauth@0.1.0
-dsh --profile web --dump-config
-```
-
-### 使用 Agent 安装（推荐）
-
-向 Agent 发送以下地址，并让它按照操作清单完成安装：
-
-`https://raw.githubusercontent.com/AdonisSheldon/dsh-openai-oauth/main/AGENTS.md`
-
-安装结束后，你只需决定是否重启 DSH，并亲自完成 ChatGPT 登录。
 
 如果 DSH Web 已经运行，安装后手动重启一次。
 
