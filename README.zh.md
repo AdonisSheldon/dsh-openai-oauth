@@ -17,6 +17,12 @@
 
 Web 集成仅支持绑定到 `127.0.0.1` 的本地 Harness Host。本版本不支持远程、反向代理、容器端口转发和 Electron 传输。Web profile 未运行时仍可使用直接登录命令。
 
+## 独立安装契约
+
+插件只使用兼容 DeepSeek Harness 发布版提供的公开运行时，不会修改、替换或要求改动 Harness 源码、agent loop 或已发布包。正常的 `dsh plugin add` 只会改变所选用户 profile 的状态，使 Harness 能解析这个包并应用其中的 `cordis.patch.yml` 组合层。
+
+Cordis、pi-ai、React 和 DSH 运行时包由 Harness 按精确兼容版本提供。插件只安装自己拥有的文件锁依赖，随包提供已经审查的 `lib/`，也没有安装生命周期脚本。因此，无论安装 tarball 还是固定 commit 的 GitHub 版本，都不需要 Harness 源码 checkout，也不需要批准包管理器构建脚本。CI 会打包仓库、把 tarball 安装到干净的 DSH `0.1.0-rc.6` 发布版、启动 Web profile、查询 OAuth 状态路由并卸载插件，以持续验证这项契约。
+
 ## 安装
 
 把已发布的包安装到 Web profile：

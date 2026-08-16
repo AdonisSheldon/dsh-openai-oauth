@@ -3,4 +3,7 @@ packages:
 
 minimumReleaseAge: 1440
 
-onlyBuiltDependencies: []
+allowBuilds:
+  '@google/genai': false
+  esbuild: true
+  protobufjs: false

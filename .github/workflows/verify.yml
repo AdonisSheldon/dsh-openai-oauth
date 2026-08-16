@@ -1,0 +1,91 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.3
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - name: Install development dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check source and build
+        run: pnpm run check
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high
+
+      - name: Pack reviewed artifact
+        run: |
+          mkdir -p "$RUNNER_TEMP/package"
+          pnpm pack --pack-destination "$RUNNER_TEMP/package"
+
+      - name: Install and boot in a clean published Harness
+        env:
+          DSH_VERSION: 0.1.0-rc.6
+          PORT: '18765'
+        run: |
+          set -euo pipefail
+          host_root="$RUNNER_TEMP/host"
+          dsh_home="$RUNNER_TEMP/dsh-home"
+          tarball="$RUNNER_TEMP/package/dsh-openai-codex-oauth-0.1.0.tgz"
+
+          npm install --prefix "$host_root" "@deepseek-ai/dsh@$DSH_VERSION"
+          DSH_HOME="$dsh_home" "$host_root/node_modules/.bin/dsh" plugin --profile web add "$tarball"
+
+          profile_workspace="$dsh_home/profiles/web/pnpm-workspace.yaml"
+          if grep -q 'set this to true or false' "$profile_workspace"; then
+            echo 'Plugin installation requested manual build approval.' >&2
+            exit 1
+          fi
+          test -x "$dsh_home/profiles/web/node_modules/.bin/dsh-openai-codex-login"
+          profile_dump="$RUNNER_TEMP/profile.yml"
+          DSH_HOME="$dsh_home" "$host_root/node_modules/.bin/dsh" --profile web --dump-config >"$profile_dump"
+          grep -q 'dsh-openai-codex-oauth' "$profile_dump"
+
+          web_log="$RUNNER_TEMP/dsh-web.log"
+          status_headers="$RUNNER_TEMP/status-headers.txt"
+          status_body="$RUNNER_TEMP/status.json"
+          DSH_HOME="$dsh_home" "$host_root/node_modules/.bin/dsh" --profile web --host 127.0.0.1 --port "$PORT" >"$web_log" 2>&1 &
+          web_pid=$!
+          trap 'kill "$web_pid" 2>/dev/null || true' EXIT
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --dump-header "$status_headers" --output "$status_body" \
+              "http://127.0.0.1:$PORT/api/plugins/openai-codex-oauth/status"; then
+              break
+            fi
+            if ! kill -0 "$web_pid" 2>/dev/null; then
+              cat "$web_log" >&2
+              exit 1
+            fi
+            sleep 1
+          done
+
+          test -s "$status_body"
+          grep -qi '^cache-control: no-store' "$status_headers"
+          node -e "const fs=require('node:fs'); const v=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); if (v.state !== 'disconnected' || !Array.isArray(v.models) || v.models.length === 0) process.exit(1)" "$status_body"
+
+          kill "$web_pid"
+          wait "$web_pid" || true
+          trap - EXIT
+          DSH_HOME="$dsh_home" "$host_root/node_modules/.bin/dsh" plugin --profile web remove dsh-openai-codex-oauth
+          test ! -e "$dsh_home/profiles/web/node_modules/.bin/dsh-openai-codex-login"

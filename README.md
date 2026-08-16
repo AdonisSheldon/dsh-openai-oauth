@@ -17,6 +17,12 @@ Version `0.1.0` targets this exact published set:
 
 The Web integration supports only a local Harness Host bound to `127.0.0.1`. Remote, proxied, container-forwarded, and Electron transports are not supported by this release. The direct login command remains available when the Web profile is not running.
 
+## Standalone installation contract
+
+The plugin uses only the public runtime exported by the compatible DeepSeek Harness release. It does not patch, replace, or require changes to the Harness source tree, agent loop, or published packages. The normal `dsh plugin add` command changes only the selected user's profile state so Harness can resolve the package and apply its `cordis.patch.yml` layer.
+
+Harness supplies Cordis, pi-ai, React, and DSH runtime packages at their exact compatible versions. The plugin installs only its owned file-locking dependency, ships reviewed `lib/` output, and defines no install lifecycle script. Consequently, installing the tarball or a pinned GitHub commit requires neither a source checkout nor package-manager build approval. CI verifies this contract by packing the repository, installing that tarball into a clean published DSH `0.1.0-rc.6` host, booting the Web profile, querying the OAuth status route, and uninstalling the package.
+
 ## Install
 
 Install a released package into the Web profile:
