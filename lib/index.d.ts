@@ -164,11 +164,11 @@ declare class SecureCredentialStore implements CredentialStore {
 //#endregion
 //#region src/protocol.d.ts
 /** Exact local route family owned by this plugin. */
-declare const OAUTH_ROUTE_PATH = "/api/plugins/openai-codex-oauth";
+declare const OAUTH_ROUTE_PATH = "/api/plugins/openai-oauth";
 //#endregion
 //#region src/index.d.ts
 /** Cordis plugin identity. */
-declare const name = "llm-openai-codex-oauth";
+declare const name = "llm-openai-oauth";
 /** The LLM registry is required; Web and attachments are optional profile capabilities. */
 declare const inject: string[];
 interface PluginRuntime {

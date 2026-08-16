@@ -8,7 +8,7 @@ import { OPENAI_CODEX_PROVIDER, SecureCredentialStore } from '../src/credential-
 const roots: string[] = []
 
 async function root(): Promise<string> {
-  const value = await mkdtemp(join(tmpdir(), 'dsh-openai-codex-oauth-store-'))
+  const value = await mkdtemp(join(tmpdir(), 'dsh-openai-oauth-store-'))
   roots.push(value)
   return value
 }
@@ -35,6 +35,7 @@ describe('SecureCredentialStore', () => {
 
     await store.modify(OPENAI_CODEX_PROVIDER, async () => credential())
 
+    expect(store.stateDirectory).toBe(join(home, 'plugins', 'dsh-openai-oauth'))
     expect((await stat(store.stateDirectory)).mode & 0o777).toBe(0o700)
     expect((await stat(store.credentialFile)).mode & 0o777).toBe(0o600)
     expect(JSON.parse(await readFile(store.credentialFile, 'utf8'))).toEqual({
@@ -49,7 +50,7 @@ describe('SecureCredentialStore', () => {
     const home = await root()
     const outside = await root()
     await mkdir(join(home, 'plugins'), { recursive: true })
-    await symlink(outside, join(home, 'plugins', 'dsh-openai-codex-oauth'))
+    await symlink(outside, join(home, 'plugins', 'dsh-openai-oauth'))
 
     await expect(new SecureCredentialStore(home).read(OPENAI_CODEX_PROVIDER))
       .rejects.toMatchObject({ code: 'UNSAFE_CREDENTIAL_PATH' })

@@ -20,7 +20,7 @@ export { CredentialStoreError, OPENAI_CODEX_PROVIDER, SecureCredentialStore } fr
 export { OAUTH_ROUTE_PATH } from './oauth-http.js'
 
 /** Cordis plugin identity. */
-export const name = 'llm-openai-codex-oauth'
+export const name = 'llm-openai-oauth'
 /** The LLM registry is required; Web and attachments are optional profile capabilities. */
 export const inject = ['llm']
 
@@ -61,7 +61,7 @@ export function createPluginRuntime(options: CreatePluginRuntimeOptions = {}): P
 /** Refuse the unsupported remotely reachable Web posture at plugin load. */
 export function assertLocalWebHost(host: WebServer['host']): void {
   if (host !== '127.0.0.1') {
-    throw new Error('dsh-openai-codex-oauth: Web OAuth supports only a loopback Host bound to 127.0.0.1')
+    throw new Error('dsh-openai-oauth: Web OAuth supports only a loopback Host bound to 127.0.0.1')
   }
 }
 
@@ -74,7 +74,7 @@ export function apply(ctx: Context): void {
       disposeAdapter()
       await runtime.controller.dispose()
     }
-  }, 'dsh-openai-codex-oauth: adapter and controller')
+  }, 'dsh-openai-oauth: adapter and controller')
   ctx.inject(['webServer'], (routeCtx) => {
     assertLocalWebHost(routeCtx.webServer.host)
     return routeCtx.webServer.register(oauthRoute(runtime.controller, async () => (

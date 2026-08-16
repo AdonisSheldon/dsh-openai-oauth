@@ -51,6 +51,13 @@ function controller(pending: PendingStatus, final: AuthStatus = { state: 'connec
 }
 
 describe('headless login CLI', () => {
+  it('prints the shortened executable name in help', async () => {
+    const terminal = io()
+
+    expect(await runLogin(['--help'], { io: terminal, createRuntime: vi.fn() })).toBe(0)
+    expect(terminal.stdout.join('')).toContain('Usage: dsh-openai-login')
+  })
+
   it('parses only explicit, non-conflicting method flags', () => {
     expect(parseLoginArgs(['--browser'])).toEqual({ method: 'browser', help: false })
     expect(parseLoginArgs(['--device-code'])).toEqual({ method: 'device_code', help: false })

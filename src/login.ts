@@ -4,7 +4,7 @@ import type { AuthStatus, LoginMethod, PendingStatus } from './auth-controller.j
 import { AuthControllerError } from './auth-controller.js'
 import { createPluginRuntime } from './index.js'
 
-const USAGE = `Usage: dsh-openai-codex-login [--browser | --device-code]
+const USAGE = `Usage: dsh-openai-login [--browser | --device-code]
 
 Options:
   --browser              Use PKCE browser login with a loopback callback

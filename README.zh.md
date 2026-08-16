@@ -1,4 +1,4 @@
-# dsh-openai-codex-oauth
+# dsh-openai-oauth
 
 [English](README.md) | 中文
 
@@ -28,7 +28,7 @@ Cordis、pi-ai、React 和 DSH 运行时包由 Harness 按精确兼容版本提�
 把已发布的包安装到 Web profile：
 
 ```sh
-dsh plugin --profile web add dsh-openai-codex-oauth@0.1.0
+dsh plugin --profile web add dsh-openai-oauth@0.1.0
 dsh --profile web --dump-config
 dsh --profile web
 ```
@@ -39,13 +39,13 @@ npm 正式发布前，可以从可信 checkout 构建 tarball，再安装这个�
 pnpm install --frozen-lockfile
 pnpm run check
 pnpm pack
-dsh plugin --profile web add /absolute/path/dsh-openai-codex-oauth-0.1.0.tgz
+dsh plugin --profile web add /absolute/path/dsh-openai-oauth-0.1.0.tgz
 ```
 
 本仓库提交了 `lib/`，所以也能从 GitHub 安装；请固定经过审查的 commit，不要使用会移动的分支：
 
 ```sh
-dsh plugin --profile web add github:YOUR_ACCOUNT/dsh-openai-codex-oauth#COMMIT_SHA
+dsh plugin --profile web add github:YOUR_ACCOUNT/dsh-openai-oauth#COMMIT_SHA
 ```
 
 安装会改变 profile 的组合。安装、更新或移除包后，已经运行的 Harness 进程需要重启一次。登录、退出登录、取消和刷新状态不需要重启。
@@ -61,24 +61,24 @@ dsh plugin --profile web add github:YOUR_ACCOUNT/dsh-openai-codex-oauth#COMMIT_S
 
 ## 在终端中登录
 
-从 profile 中运行已安装的命令。使用默认 Harness 主目录时：
+安装步骤通过 `--dump-config` 或首次启动 Web 完成 DSH 运行时初始化后，从 profile 中运行已安装的命令；此时 Web 服务不需要继续运行。使用默认 Harness 主目录时：
 
 ```sh
-pnpm --dir ~/.dsh/profiles/web exec dsh-openai-codex-login
+pnpm --dir ~/.dsh/profiles/web exec dsh-openai-login
 ```
 
 交互式命令会要求选择浏览器或设备代码。脚本和非交互终端必须明确指定：
 
 ```sh
-pnpm --dir ~/.dsh/profiles/web exec dsh-openai-codex-login --browser
-pnpm --dir ~/.dsh/profiles/web exec dsh-openai-codex-login --device-code
+pnpm --dir ~/.dsh/profiles/web exec dsh-openai-login --browser
+pnpm --dir ~/.dsh/profiles/web exec dsh-openai-login --device-code
 ```
 
 自定义 `DSH_HOME` 时，请使用其中对应的 profile 目录，并保持该环境变量有效，使命令与 Harness 使用同一份凭据文件。
 
 ## 凭据和网络行为
 
-凭据保存在 `$DSH_HOME/plugins/dsh-openai-codex-oauth/credentials.json` 中（Harness 默认主目录是 `~/.dsh`）。插件在支持的 POSIX 文件系统上强制目录和文件仅限所有者访问，拒绝符号链接凭据目标，串行化跨进程更新，并原子替换带版本的文件。文件没有静态加密；请保护操作系统账号和 Harness 主目录。
+凭据保存在 `$DSH_HOME/plugins/dsh-openai-oauth/credentials.json` 中（Harness 默认主目录是 `~/.dsh`）。插件在支持的 POSIX 文件系统上强制目录和文件仅限所有者访问，拒绝符号链接凭据目标，串行化跨进程更新，并原子替换带版本的文件。文件没有静态加密；请保护操作系统账号和 Harness 主目录。
 
 pi-ai 会向 OpenAI 发送 OAuth 凭据和模型请求。Web 路由只返回脱敏连接状态、模型 id、浏览器授权 URL 或设备代码说明；它拒绝非环回请求和跨源写操作，也不会启用 CORS。会话日志包含模型可见的对话数据和回放元数据，但不包含 OAuth 凭据。
 
@@ -96,7 +96,7 @@ pi-ai 会向 OpenAI 发送 OAuth 凭据和模型请求。Web 路由只返回脱�
 如果需要删除凭据，请先在 **OpenAI OAuth** 设置中退出登录，然后移除组合包并重启正在运行的 Harness 进程：
 
 ```sh
-dsh plugin --profile web remove dsh-openai-codex-oauth
+dsh plugin --profile web remove dsh-openai-oauth
 ```
 
 移除包会撤销适配器、路由和设置区，但会有意保留没有明确删除的插件凭据，避免卸载过程静默销毁账号状态。

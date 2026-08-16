@@ -12,7 +12,7 @@ const contexts: Context[] = []
 const homes: string[] = []
 
 async function home(): Promise<string> {
-  const value = await mkdtemp(join(tmpdir(), 'dsh-openai-codex-oauth-plugin-'))
+  const value = await mkdtemp(join(tmpdir(), 'dsh-openai-oauth-plugin-'))
   homes.push(value)
   return value
 }
@@ -25,6 +25,11 @@ afterEach(async () => {
 })
 
 describe('standalone plugin lifecycle', () => {
+  it('uses the shortened plugin and route identities', () => {
+    expect(Plugin.name).toBe('llm-openai-oauth')
+    expect(OAUTH_ROUTE_PATH).toBe('/api/plugins/openai-oauth')
+  })
+
   it('registers openai-codex in a headless Cordis tree and withdraws it on disposal', async () => {
     vi.stubEnv('DSH_HOME', await home())
     const ctx = new Context()

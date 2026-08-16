@@ -14,7 +14,7 @@ Cordis, React, pi-ai, and DSH packages are exact optional peers supplied by the 
 
 Each login attempt uses the user's explicit Browser or Device Code selection. Browser uses pi-ai's PKCE loopback callback; Device Code is the supported alternative for headless and callback-constrained environments. The plugin starts no Codex App Server and creates no provider-owned conversation, so Harness continues to own its agent loop and durable session history.
 
-The credential file belongs to the plugin under `$DSH_HOME/plugins/dsh-openai-codex-oauth`. Uninstall preserves that file unless the user logs out first. The Web route is local-only and exposes redacted status and public authorization instructions, never credentials.
+The credential file belongs to the plugin under `$DSH_HOME/plugins/dsh-openai-oauth`. Uninstall preserves that file unless the user logs out first. The Web route is local-only and exposes redacted status and public authorization instructions, never credentials.
 
 ## Alternatives considered
 

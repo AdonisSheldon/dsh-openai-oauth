@@ -1,4 +1,4 @@
-# dsh-openai-codex-oauth
+# dsh-openai-oauth
 
 English | [中文](README.zh.md)
 
@@ -28,7 +28,7 @@ Harness supplies Cordis, pi-ai, React, and DSH runtime packages at their exact c
 Install a released package into the Web profile:
 
 ```sh
-dsh plugin --profile web add dsh-openai-codex-oauth@0.1.0
+dsh plugin --profile web add dsh-openai-oauth@0.1.0
 dsh --profile web --dump-config
 dsh --profile web
 ```
@@ -39,13 +39,13 @@ Before an npm release exists, build a tarball from a trusted checkout and instal
 pnpm install --frozen-lockfile
 pnpm run check
 pnpm pack
-dsh plugin --profile web add /absolute/path/dsh-openai-codex-oauth-0.1.0.tgz
+dsh plugin --profile web add /absolute/path/dsh-openai-oauth-0.1.0.tgz
 ```
 
 A GitHub installation also works because this repository commits `lib/`; pin a reviewed commit instead of a moving branch:
 
 ```sh
-dsh plugin --profile web add github:YOUR_ACCOUNT/dsh-openai-codex-oauth#COMMIT_SHA
+dsh plugin --profile web add github:YOUR_ACCOUNT/dsh-openai-oauth#COMMIT_SHA
 ```
 
 Installation changes the profile composition. Restart an already-running Harness process once after installing, updating, or removing the package. Login, logout, cancellation, and status refresh do not require a restart.
@@ -61,24 +61,24 @@ After the status becomes **Connected**, the stock Models settings can discover t
 
 ## Sign in from a terminal
 
-Run the installed command from the profile. With the default Harness home:
+After the install sequence has initialized the DSH runtime with `--dump-config` or the first Web boot, run the installed command from the profile. The Web server does not need to remain running. With the default Harness home:
 
 ```sh
-pnpm --dir ~/.dsh/profiles/web exec dsh-openai-codex-login
+pnpm --dir ~/.dsh/profiles/web exec dsh-openai-login
 ```
 
 The interactive command asks for Browser or Device Code. Scripts and non-interactive terminals must choose explicitly:
 
 ```sh
-pnpm --dir ~/.dsh/profiles/web exec dsh-openai-codex-login --browser
-pnpm --dir ~/.dsh/profiles/web exec dsh-openai-codex-login --device-code
+pnpm --dir ~/.dsh/profiles/web exec dsh-openai-login --browser
+pnpm --dir ~/.dsh/profiles/web exec dsh-openai-login --device-code
 ```
 
 When `DSH_HOME` is customized, use its matching profile directory and keep that environment variable set so the command and Harness share the same credential file.
 
 ## Credential and network behavior
 
-Credentials are stored in `$DSH_HOME/plugins/dsh-openai-codex-oauth/credentials.json` (`~/.dsh` is the default Harness home). The plugin enforces an owner-only directory and file on supported POSIX filesystems, refuses symbolic-link credential targets, serializes cross-process updates, and atomically replaces the versioned file. The file is not encrypted at rest; protect the operating-system account and Harness home.
+Credentials are stored in `$DSH_HOME/plugins/dsh-openai-oauth/credentials.json` (`~/.dsh` is the default Harness home). The plugin enforces an owner-only directory and file on supported POSIX filesystems, refuses symbolic-link credential targets, serializes cross-process updates, and atomically replaces the versioned file. The file is not encrypted at rest; protect the operating-system account and Harness home.
 
 OAuth credentials and model requests are sent to OpenAI by pi-ai. The Web route returns only redacted connection state, model identifiers, the Browser authorization URL, or Device Code instructions. It rejects non-loopback requests and cross-origin mutations and does not enable CORS. Session logs contain model-visible conversation data and replay metadata, never OAuth credentials.
 
@@ -96,7 +96,7 @@ See [SECURITY.md](SECURITY.md) before reporting a vulnerability or deploying the
 Sign out in **OpenAI OAuth** settings first if the credential must be deleted, then remove the bundle and restart the running Harness process:
 
 ```sh
-dsh plugin --profile web remove dsh-openai-codex-oauth
+dsh plugin --profile web remove dsh-openai-oauth
 ```
 
 Removing the package withdraws the adapter, route, and settings section but intentionally preserves any plugin-owned credential that was not explicitly deleted. This prevents an uninstall from silently destroying account state.

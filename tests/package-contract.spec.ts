@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 interface PackageManifest {
+  name?: string
+  bin?: Record<string, string>
   dependencies?: Record<string, string>
   devDependencies?: Record<string, string>
   peerDependencies?: Record<string, string>
@@ -18,6 +20,13 @@ async function manifest(): Promise<PackageManifest> {
 }
 
 describe('published package contract', () => {
+  it('publishes only the dsh-openai-oauth package and CLI identities', async () => {
+    const value = await manifest()
+
+    expect(value.name).toBe('dsh-openai-oauth')
+    expect(value.bin).toEqual({ 'dsh-openai-login': 'lib/login.js' })
+  })
+
   it('installs only plugin-owned production dependencies', async () => {
     const value = await manifest()
 

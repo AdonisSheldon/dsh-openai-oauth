@@ -24,7 +24,7 @@ export type OpenAiOAuthSectionProps = SettingsSectionOwnerProps & OpenAiOAuthSec
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** Dedicated OpenAI OAuth settings copy. */
-    'settings.openai-codex-oauth': OAuthLocaleKey
+    'settings.openai-oauth': OAuthLocaleKey
   }
 }
 
@@ -231,16 +231,16 @@ export function OpenAiOAuthSection({ t }: OpenAiOAuthSectionProps): ReactNode {
   )
 }
 
-const NS = 'settings.openai-codex-oauth'
+const NS = 'settings.openai-oauth'
 export const inject = ['slots', 'locale']
 
 /** Register bilingual copy and the dedicated settings page. */
 export function apply(ctx: ClientContext): void {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'openai-codex-oauth: client copy')
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'openai-oauth: client copy')
   const t = ctx.locale.bind(NS)
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
-    id: 'openai-codex-oauth',
+    id: 'openai-oauth',
     order: 11,
     label: () => t('nav'),
     inject: () => ({ t }),

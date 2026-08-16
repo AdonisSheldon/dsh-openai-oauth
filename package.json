@@ -1,5 +1,5 @@
 {
-  "name": "dsh-openai-codex-oauth",
+  "name": "dsh-openai-oauth",
   "version": "0.1.0",
   "description": "Self-contained OpenAI Codex OAuth provider for DeepSeek Harness",
   "type": "module",
@@ -17,7 +17,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "dsh-openai-codex-login": "lib/login.js"
+    "dsh-openai-login": "lib/login.js"
   },
   "files": [
     "lib",

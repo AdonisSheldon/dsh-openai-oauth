@@ -41,7 +41,7 @@ type OpenAiOAuthSectionProps = SettingsSectionOwnerProps & OpenAiOAuthSectionInj
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** Dedicated OpenAI OAuth settings copy. */
-    'settings.openai-codex-oauth': OAuthLocaleKey;
+    'settings.openai-oauth': OAuthLocaleKey;
   }
 }
 /** Dedicated settings section for the plugin-owned OAuth state machine. */

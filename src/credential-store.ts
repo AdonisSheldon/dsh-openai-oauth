@@ -21,7 +21,7 @@ import type {
 export const OPENAI_CODEX_PROVIDER = 'openai-codex'
 
 const ENVELOPE_VERSION = 1
-const STATE_DIRECTORY_NAME = 'dsh-openai-codex-oauth'
+const STATE_DIRECTORY_NAME = 'dsh-openai-oauth'
 const CREDENTIAL_FILE_NAME = 'credentials.json'
 
 interface CredentialEnvelope {

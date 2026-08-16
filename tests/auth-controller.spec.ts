@@ -9,7 +9,7 @@ import { OPENAI_CODEX_PROVIDER, SecureCredentialStore } from '../src/credential-
 const roots: string[] = []
 
 async function store(): Promise<SecureCredentialStore> {
-  const home = await mkdtemp(join(tmpdir(), 'dsh-openai-codex-oauth-controller-'))
+  const home = await mkdtemp(join(tmpdir(), 'dsh-openai-oauth-controller-'))
   roots.push(home)
   return new SecureCredentialStore(home)
 }
