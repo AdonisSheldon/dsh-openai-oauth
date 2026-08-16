@@ -11,6 +11,7 @@ declare const en: {
   readonly status: "Connection status";
   readonly loading: "Loading OAuth status…";
   readonly connected: "Connected";
+  readonly pending: "Sign-in in progress";
   readonly disconnected: "Not connected";
   readonly failed: "Sign-in failed";
   readonly methodLegend: "Login method";
@@ -23,12 +24,16 @@ declare const en: {
   readonly cancel: "Cancel sign-in";
   readonly refresh: "Refresh status";
   readonly browserWaiting: "Waiting for the loopback callback…";
+  readonly browserWaitingHelp: "Finish sign-in in the OpenAI window. This page updates automatically.";
   readonly continueBrowser: "Continue in browser";
   readonly deviceInstructions: "Open the verification page and enter this code:";
+  readonly copyCode: "Copy device code";
+  readonly copiedCode: "Device code copied";
+  readonly copyHint: "Click to copy";
+  readonly copied: "Copied";
+  readonly copyFailed: "Could not copy the device code. Copy it manually.";
   readonly openVerification: "Open verification page";
   readonly expires: "This code expires at {time}.";
-  readonly models: "Available models";
-  readonly noModels: "The provider model list will appear here.";
   readonly requestFailed: "The local Harness Host did not complete the OAuth request.";
 };
 type OAuthLocaleKey = keyof typeof en;

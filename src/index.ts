@@ -71,8 +71,6 @@ export function apply(ctx: Context): void {
   }, 'dsh-openai-oauth: adapter and controller')
   ctx.inject(['webServer'], (routeCtx) => {
     assertLocalWebHost(routeCtx.webServer.host)
-    return routeCtx.webServer.register(oauthRoute(runtime.controller, async () => (
-      await runtime.adapter.listModels(OPENAI_CODEX_PROVIDER)
-    ).map(model => ({ id: model.id, name: model.name }))))
+    return routeCtx.webServer.register(oauthRoute(runtime.controller))
   })
 }

@@ -1,8 +1,38 @@
+# Dependencies and package output
 node_modules/
+.pnpm-store/
 coverage/
+dist/
 *.tgz
+*.tsbuildinfo
+pnpm-debug.log*
+
+# Test sources and runner configuration
+tests/
+test/
+__tests__/
+**/*.spec.*
+**/*.test.*
+vitest.config.*
+
+# Generated and duplicate build files
+lib/*.map
+lib/* [0-9]*.*
+
+# Local environment and credentials
 .env
 .env.*
 !.env.example
+.npmrc
 *.pem
 *.key
+
+# Editor, OS, and temporary files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.cache/
+tmp/
+temp/
+*.log

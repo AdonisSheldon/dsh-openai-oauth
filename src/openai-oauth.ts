@@ -98,12 +98,80 @@ function credentialFromToken(value: Record<string, unknown>, now: number): OAuth
   return { type: 'oauth', access, refresh, expires: now + expiresIn * 1000, accountId }
 }
 
+function escapeHtml(value: string): string {
+  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;').replaceAll("'", '&#39;')
+}
+
+function callbackPage(state: 'success' | 'error', message: string): string {
+  const success = state === 'success'
+  const title = success ? 'OpenAI sign-in complete' : 'OpenAI sign-in failed'
+  const heading = success ? 'Sign-in complete' : 'Sign-in failed'
+  const status = success ? 'Callback verified' : 'Callback rejected'
+  return `<!doctype html>
+<html lang="en" data-page="oauth-callback" data-state="${state}" data-layout="flat">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:,">
+  <title>${title}</title>
+  <style>
+    :root { color-scheme: light dark; --page: #f9fafb; --text: #0f1115; --secondary: #61666b;
+      --tertiary: #81858c; --border: rgba(0, 0, 0, .1); --success: #22a559; --error: #e5484d; }
+    @media (prefers-color-scheme: dark) {
+      :root { --page: #151517; --text: #f5f6f7; --secondary: #c4c7ca; --tertiary: #8b8e93;
+        --border: rgba(255, 255, 255, .12); --success: #4ecb7b; --error: #f06a6a; }
+    }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body { margin: 0; display: grid; place-items: center; padding: 24px; background: var(--page); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+        'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased; }
+    .shell { width: min(420px, 100%); }
+    .brand { display: flex; align-items: center; gap: 7px; margin-bottom: 38px; color: var(--secondary);
+      font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+    .brand-badge { padding-left: 7px; border-left: 1px solid var(--border); color: var(--tertiary);
+      font-size: 10px; font-weight: 600; letter-spacing: .06em; }
+    .content { padding-top: 26px; border-top: 1px solid var(--border); }
+    .eyebrow { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; color: var(--secondary);
+      font-size: 12px; font-weight: 500; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+    html[data-state='error'] .status-dot { background: var(--error); }
+    h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: 1.35; letter-spacing: -.02em; }
+    .message { margin: 10px 0 0; color: var(--secondary); font-size: 14px; line-height: 1.65; }
+    .footnote { margin: 30px 0 0; padding-top: 16px; border-top: 1px solid var(--border);
+      color: var(--tertiary); font-size: 11px; line-height: 1.5; }
+    @media (max-width: 480px) {
+      body { padding: 16px; }
+      .brand { margin-bottom: 30px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell" aria-labelledby="callback-title">
+    <header class="brand" aria-label="DeepSeek Harness">
+      <span>deepseek</span>
+      <span class="brand-badge">HARNESS</span>
+    </header>
+    <section class="content">
+      <p class="eyebrow" role="status"><span class="status-dot" aria-hidden="true"></span>${status}</p>
+      <h1 id="callback-title">${heading}</h1>
+      <p class="message">${escapeHtml(message)}</p>
+      <p class="footnote">OpenAI OAuth · local one-time callback</p>
+    </section>
+  </main>
+</body>
+</html>`
+}
+
 function successPage(): string {
-  return '<!doctype html><meta charset="utf-8"><title>OpenAI sign-in complete</title><p>OpenAI sign-in completed. You can close this window.</p>'
+  return callbackPage('success', 'OpenAI sign-in has finished. You can close this window and return to DeepSeek Harness.')
 }
 
 function errorPage(message: string): string {
-  return `<!doctype html><meta charset="utf-8"><title>OpenAI sign-in failed</title><p>${message}</p>`
+  return callbackPage('error', message)
 }
 
 /** Wait for one state-bound OAuth callback on the fixed loopback listener. */

@@ -14,11 +14,6 @@ export interface OAuthHttpController {
   logout(): Promise<AuthStatus>
 }
 
-export interface PublicModel {
-  id: string
-  name: string
-}
-
 class HttpError extends Error {
   constructor(
     readonly status: number,
@@ -160,7 +155,6 @@ function attemptId(body: Record<string, unknown>): string {
 /** Build the local-only OAuth route without registering it. */
 export function oauthRoute(
   controller: OAuthHttpController,
-  listModels: () => Promise<readonly PublicModel[]>,
 ): WebRoute {
   return {
     kind: 'prefix',
@@ -184,8 +178,7 @@ export function oauthRoute(
       try {
         if (path === `${OAUTH_ROUTE_PATH}/status`) {
           if (req.method !== 'GET') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'This OAuth endpoint accepts only GET.')
-          const [status, models] = await Promise.all([controller.status(), listModels()])
-          writeJson(res, 200, { ...status, models })
+          writeJson(res, 200, await controller.status())
           return
         }
         if (path === `${OAUTH_ROUTE_PATH}/start`) {
