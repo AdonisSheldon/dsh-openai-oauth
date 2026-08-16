@@ -1,4 +1,4 @@
-/** OpenAI Codex adapter. No Codex App Server, pi agent, or provider conversation is created. */
+/** OpenAI Codex adapter. No Codex App Server or external agent process is created. */
 import type { AttachmentStore } from '@deepseek-ai/dsh-attachment'
 import {
   attributionHeaders,
@@ -14,25 +14,26 @@ import type {
   LlmResolvedModelInfo,
   StreamChunk,
 } from '@deepseek-ai/dsh-llm'
-import { getSupportedThinkingLevels } from '@earendil-works/pi-ai'
+import { getSupportedThinkingLevels } from './models.js'
 import type {
   Api,
   AssistantMessageEvent,
+  CodexContext,
   Model,
   ModelsSimpleStreamOptions,
   ThinkingLevel,
-} from '@earendil-works/pi-ai'
-import { toPiContext } from './context.js'
+} from './models.js'
+import { toCodexContext } from './context.js'
 import { OPENAI_CODEX_PROVIDER } from './credential-store.js'
-import { redactedPiError, toStreamChunks } from './stream.js'
+import { redactedCodexError, toStreamChunks } from './stream.js'
 
-/** Minimum pi-ai collection face used by the route-specific adapter. */
+/** Minimum model collection used by the route-specific adapter. */
 export interface OpenAiCodexModels {
   getModels(provider?: string): readonly Model<Api>[]
   getModel(provider: string, id: string): Model<Api> | undefined
   streamSimple(
     model: Model<Api>,
-    context: import('@earendil-works/pi-ai').Context,
+    context: CodexContext,
     options?: ModelsSimpleStreamOptions,
   ): AsyncIterable<AssistantMessageEvent>
 }
@@ -85,10 +86,10 @@ function transformHeaders(headers: Readonly<Record<string, string | null>>): Rec
   }
 }
 
-/** Route-specific adapter over pi-ai's credential-aware Models collection. */
+/** Route-specific adapter over the plugin-owned credential-aware model collection. */
 export class OpenAiCodexAdapter extends LlmAdapter {
   /**
-   * @param models - collection containing pi-ai's built-in openai-codex provider.
+   * @param models - plugin-owned OpenAI Codex model collection.
    * @param options - optional Harness capability resolvers.
    */
   constructor(
@@ -152,7 +153,7 @@ export class OpenAiCodexAdapter extends LlmAdapter {
     let iterator: AsyncIterator<StreamChunk> | undefined
     let exhausted = false
     try {
-      const context = await toPiContext(options, containsImage ? this.options.attachments?.() : undefined)
+      const context = await toCodexContext(options, containsImage ? this.options.attachments?.() : undefined)
       const events = this.models.streamSimple(model, context, {
         ...reasoning === undefined ? {} : { reasoning },
         ...options.temperature === undefined ? {} : { temperature: options.temperature },
@@ -173,7 +174,7 @@ export class OpenAiCodexAdapter extends LlmAdapter {
     } catch (error) {
       if (error instanceof LlmError) throw error
       if (options.signal?.aborted) throw new LlmError('OpenAI Codex request was aborted by the caller.', 'ABORTED')
-      throw redactedPiError(error)
+      throw redactedCodexError(error)
     } finally {
       if (!exhausted) {
         consumer.abort('OpenAI Codex stream consumer stopped')

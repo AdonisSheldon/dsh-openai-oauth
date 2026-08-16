@@ -2,7 +2,7 @@ import { chmod, lstat, mkdtemp, mkdir, readFile, stat, symlink, writeFile } from
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { OAuthCredential } from '@earendil-works/pi-ai'
+import type { OAuthCredential } from '../src/oauth-types.js'
 import { OPENAI_CODEX_PROVIDER, SecureCredentialStore } from '../src/credential-store.js'
 
 const roots: string[] = []

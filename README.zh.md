@@ -2,9 +2,9 @@
 
 [English](README.md) | 中文
 
-这是一个非官方、可独立安装的 DeepSeek Harness 插件，通过 ChatGPT 账号 OAuth 连接 `openai-codex` 模型提供方。它保留 Harness 的 agent loop（智能体循环）、工具、提示词、会话回放和模型选择，不会启动 Codex App Server、运行 pi agent，也不会创建由提供方管理的第二段对话。
+这是一个非官方、可独立安装的 DeepSeek Harness 插件，通过 ChatGPT 账号 OAuth 连接 `openai-codex` 模型提供方。它保留 Harness 的 agent loop（智能体循环）、工具、提示词、会话回放和模型选择，不会启动 Codex App Server，也不会创建由提供方管理的第二段对话。
 
-插件独立安装、配置和发布。它在内部把 `@earendil-works/pi-ai` 用作 OAuth 与模型传输库，但不会集成 pi agent 进程、配置、对话或凭据存储。
+插件自行实现 OAuth 协议、token 刷新、模型目录、Responses 请求转换、SSE 解析、凭据存储和 Harness 适配器。它不依赖其他 agent 实现的运行时、peer package、开发依赖、进程、配置或凭据。
 
 这种授权用于通过 ChatGPT 账号访问 Codex 模型提供方。它不是 OpenAI API OAuth，不会配置普通 `openai` 提供方，也不能提供该账号本身没有的模型或额度。
 
@@ -14,7 +14,6 @@
 
 - DeepSeek Harness `0.1.0-rc.6`
 - Cordis `4.0.1`
-- `@earendil-works/pi-ai` `0.82.1`
 - Node.js `^22.19.0` 或 `>=24.0.0`
 
 Web 集成仅支持绑定到 `127.0.0.1` 的本地 Harness Host。本版本不支持远程、反向代理、容器端口转发和 Electron 传输。Web profile 未运行时仍可使用直接登录命令。
@@ -23,7 +22,7 @@ Web 集成仅支持绑定到 `127.0.0.1` 的本地 Harness Host。本版本不�
 
 插件只使用兼容 DeepSeek Harness 发布版提供的公开运行时，不会修改、替换或要求改动 Harness 源码、agent loop 或已发布包。正常的 `dsh plugin add` 只会改变所选用户 profile 的状态，使 Harness 能解析这个包并应用其中的 `cordis.patch.yml` 组合层。
 
-Cordis、pi-ai、React 和 DSH 运行时包由 Harness 按精确兼容版本提供。插件只安装自己拥有的文件锁依赖，随包提供已经审查的 `lib/`，也没有安装生命周期脚本。因此，无论安装 tarball 还是固定 commit 的 GitHub 版本，都不需要 Harness 源码 checkout，也不需要批准包管理器构建脚本。CI 会打包仓库、把 tarball 安装到 DSH `0.1.0-rc.6` 发布版的干净 Web 和 headless profile、启动 Web profile、查询 OAuth 状态路由、运行已安装的登录命令并卸载插件，以持续验证这项契约。
+Cordis、React 和 DSH 运行时包由 Harness 按精确兼容版本提供。插件只安装文件锁依赖，随包提供已经审查的 `lib/`，也没有安装生命周期脚本。因此，无论安装 tarball 还是固定 commit 的 GitHub 版本，都不需要 Harness 源码 checkout，也不需要批准包管理器构建脚本。CI 会打包仓库、把 tarball 安装到 DSH `0.1.0-rc.6` 发布版的干净 Web 和 headless profile、启动 Web profile、查询 OAuth 状态路由、运行已安装的登录命令并卸载插件，以持续验证这项契约。
 
 ## 安装
 
@@ -91,13 +90,13 @@ pnpm --dir ~/.dsh/profiles/web exec dsh-openai-login --device-code
 
 凭据保存在 `$DSH_HOME/plugins/dsh-openai-oauth/credentials.json` 中（Harness 默认主目录是 `~/.dsh`）。插件在支持的 POSIX 文件系统上强制目录和文件仅限所有者访问，拒绝符号链接凭据目标，串行化跨进程更新，并原子替换带版本的文件。文件没有静态加密；请保护操作系统账号和 Harness 主目录。
 
-插件内部的提供方库会向 OpenAI 发送 OAuth 凭据和模型请求。Web 路由只返回脱敏连接状态、模型 id、浏览器授权 URL 或设备代码说明；它拒绝非环回请求和跨源写操作，也不会启用 CORS。会话日志包含模型可见的对话数据和回放元数据，但不包含 OAuth 凭据。
+插件直接向 OpenAI endpoint 发送 OAuth 凭据和模型请求。Web 路由只返回脱敏连接状态、模型 id、浏览器授权 URL 或设备代码说明；它拒绝非环回请求和跨源写操作，也不会启用 CORS。会话日志包含模型可见的对话数据和回放元数据，但不包含 OAuth 凭据。
 
 报告漏洞或部署插件前，请阅读 [SECURITY.md](SECURITY.md)。
 
 ## 限制
 
-- 浏览器登录需要当前提供方库固定的回调端口 `1455`；端口不可用时请选择设备代码。
+- 浏览器登录需要固定回调端口 `1455`；端口不可用时请选择设备代码。
 - OpenAI 可以独立修改非官方 Codex OAuth 协议或账号策略。
 - 插件会拒绝 `maxTokens` 和停止序列，因为当前 Codex 传输无法忠实地提供这些请求控制。
 - 推理选项只列出当前模型传输支持的值；本版本不会展示传输层无法保证的 `off` 设置。

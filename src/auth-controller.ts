@@ -1,15 +1,14 @@
 import { randomUUID } from 'node:crypto'
-import { isIP } from 'node:net'
 import type {
   AuthEvent,
   AuthInteraction,
   AuthPrompt,
   CredentialStore,
   OAuthCredential,
-} from '@earendil-works/pi-ai'
+} from './oauth-types.js'
 import { OPENAI_CODEX_PROVIDER } from './credential-store.js'
 
-/** Login methods presented by pi-ai's OpenAI Codex OAuth provider. */
+/** Login methods presented by the plugin-owned OpenAI OAuth implementation. */
 export type LoginMethod = 'browser' | 'device_code'
 
 export interface RedactedAuthError {
@@ -102,12 +101,6 @@ function cloneStatus(status: AuthStatus): AuthStatus {
   return { ...status }
 }
 
-function callbackHostIsLoopback(host: string): boolean {
-  if (host === 'localhost' || host === '::1' || host === '[::1]') return true
-  const plain = host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host
-  return isIP(plain) === 4 && plain.startsWith('127.')
-}
-
 function trustedOpenAiUrl(raw: string): URL | undefined {
   try {
     const url = new URL(raw)
@@ -157,7 +150,7 @@ function redactedFailure(method: LoginMethod, error: unknown): AuthControllerErr
 
 /**
  * One dual-method OAuth state machine. It owns cancellation and persistence,
- * while pi-ai owns the OpenAI protocol and token exchange.
+ * while the OAuth service owns the OpenAI protocol and token exchange.
  */
 export class AuthController {
   private statusValue: AuthStatus = { state: 'disconnected' }
@@ -168,7 +161,7 @@ export class AuthController {
   private readonly now: () => number
 
   /**
-   * @param credentials - plugin-owned persistent pi-ai credential store.
+   * @param credentials - plugin-owned persistent OAuth credential store.
    * @param options - provider login operation and deterministic helpers.
    */
   constructor(
@@ -310,15 +303,6 @@ export class AuthController {
       if (this.disposed) throw new AuthControllerError('AUTH_DISPOSED', 'OpenAI sign-in is unavailable because the plugin is stopping.')
       if (method !== 'browser' && method !== 'device_code') {
         throw new AuthControllerError('INVALID_LOGIN_METHOD', 'Login method must be browser or device_code.')
-      }
-      if (method === 'browser') {
-        const callbackHost = process.env['PI_OAUTH_CALLBACK_HOST']
-        if (callbackHost !== undefined && !callbackHostIsLoopback(callbackHost)) {
-          throw new AuthControllerError(
-            'UNSAFE_CALLBACK_HOST',
-            'Browser login requires a loopback PI_OAUTH_CALLBACK_HOST. Choose Device Code for another machine.',
-          )
-        }
       }
       if (this.active !== undefined) {
         if (this.active.method !== method) {

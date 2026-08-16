@@ -1,4 +1,4 @@
-/** pi-ai-to-Harness stream conversion derived from MIT-licensed DeepSeek Harness. */
+/** OpenAI Codex-to-Harness stream conversion. */
 import {
   CallId,
   CONTEXT_WINDOW_EXCEEDED_CODE,
@@ -6,11 +6,10 @@ import {
   LlmError,
 } from '@deepseek-ai/dsh-llm'
 import type { FinishReason, LlmFailure, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-llm'
-import { isContextOverflow } from '@earendil-works/pi-ai'
-import type { AssistantMessage, AssistantMessageEvent, Usage } from '@earendil-works/pi-ai'
-import { toPiReplayState } from './replay.js'
+import type { AssistantMessage, AssistantMessageEvent, Usage } from './models.js'
+import { toCodexReplayState } from './replay.js'
 
-/** Map pi-ai's disjoint usage fields into Harness usage. */
+/** Map Codex usage fields into Harness usage. */
 export function mapUsage(usage: Usage): TokenUsage {
   return {
     inputTokens: usage.input,
@@ -40,17 +39,18 @@ function providerFailure(message: string): LlmFailure {
   if (/network|connection|socket|fetch|ECONN[A-Z]+|terminated|premature close/i.test(message)) {
     return { code: 'TRANSPORT', message: 'OpenAI Codex transport failed.' }
   }
-  return { code: 'PI_AI_ERROR', message: 'OpenAI Codex request failed.' }
+  return { code: 'CODEX_ERROR', message: 'OpenAI Codex request failed.' }
 }
 
-/** Convert a thrown pi-ai failure without retaining its message or cause. */
-export function redactedPiError(error: unknown): LlmError {
+/** Convert a thrown provider failure without retaining its message or cause. */
+export function redactedCodexError(error: unknown): LlmError {
   const failure = providerFailure(error instanceof Error ? error.message : '')
   return new LlmError(failure.message, failure.code)
 }
 
 function stopReason(message: AssistantMessage, contextWindow?: number): FinishReason {
-  if (isContextOverflow(message, contextWindow)) {
+  if ((message.stopReason === 'error' && /context.{0,20}(?:window|length|token)/i.test(message.errorMessage ?? ''))
+    || (contextWindow !== undefined && message.usage.input >= contextWindow)) {
     return {
       kind: 'error',
       failure: { code: CONTEXT_WINDOW_EXCEEDED_CODE, message: 'OpenAI Codex context window was exceeded.' },
@@ -67,7 +67,7 @@ function stopReason(message: AssistantMessage, contextWindow?: number): FinishRe
   }
 }
 
-/** Translate one pi-ai event stream into Harness chunks. */
+/** Translate one Codex event stream into Harness chunks. */
 export async function* toStreamChunks(
   events: AsyncIterable<AssistantMessageEvent>,
   contextWindow?: number,
@@ -113,7 +113,7 @@ export async function* toStreamChunks(
       }; break
       case 'done':
         yield { type: 'usage', usage: mapUsage(event.message.usage) }
-        yield { type: 'finish', reason: stopReason(event.message, contextWindow), replayState: toPiReplayState(event.message) }
+        yield { type: 'finish', reason: stopReason(event.message, contextWindow), replayState: toCodexReplayState(event.message) }
         return
       case 'error':
         yield { type: 'usage', usage: mapUsage(event.error.usage) }

@@ -20,7 +20,13 @@
     "dsh-openai-login": "lib/login.js"
   },
   "files": [
-    "lib",
+    "lib/client.d.ts",
+    "lib/client.js",
+    "lib/index.d.ts",
+    "lib/index.js",
+    "lib/login.d.ts",
+    "lib/login.js",
+    "lib/src.js",
     "cordis.patch.yml",
     "README.md",
     "README.zh.md",
@@ -73,7 +79,6 @@
     "@deepseek-ai/dsh-host-webserver": "0.1.0-rc.6",
     "@deepseek-ai/dsh-llm": "0.1.0-rc.6",
     "@deepseek-ai/dsh-timeout": "0.1.0-rc.6",
-    "@earendil-works/pi-ai": "0.82.1",
     "react": "18.3.1"
   },
   "peerDependenciesMeta": {
@@ -107,9 +112,6 @@
     "@deepseek-ai/dsh-timeout": {
       "optional": true
     },
-    "@earendil-works/pi-ai": {
-      "optional": true
-    },
     "react": {
       "optional": true
     }
@@ -125,7 +127,6 @@
     "@deepseek-ai/dsh-host-webserver": "0.1.0-rc.6",
     "@deepseek-ai/dsh-llm": "0.1.0-rc.6",
     "@deepseek-ai/dsh-timeout": "0.1.0-rc.6",
-    "@earendil-works/pi-ai": "0.82.1",
     "@testing-library/react": "16.3.2",
     "@testing-library/user-event": "14.6.1",
     "@types/node": "22.20.0",

@@ -6,10 +6,10 @@ import type {
   Api,
   AssistantMessage,
   AssistantMessageEvent,
-  Context as PiContext,
+  CodexContext,
   Model,
   ModelsSimpleStreamOptions,
-} from '@earendil-works/pi-ai'
+} from '../src/models.js'
 import { OpenAiCodexAdapter, type OpenAiCodexModels } from '../src/adapter.js'
 import { OPENAI_CODEX_PROVIDER } from '../src/credential-store.js'
 
@@ -75,7 +75,7 @@ function fakeModels(events: AssistantMessageEvent[] = []): {
   models: OpenAiCodexModels
   streamSimple: ReturnType<typeof vi.fn>
 } {
-  const streamSimple = vi.fn((_model: Model<Api>, _context: PiContext, _options?: ModelsSimpleStreamOptions) => (async function* () {
+  const streamSimple = vi.fn((_model: Model<Api>, _context: CodexContext, _options?: ModelsSimpleStreamOptions) => (async function* () {
     for (const event of events) yield event
   })())
   return {
@@ -125,7 +125,7 @@ describe('OpenAiCodexAdapter', () => {
     await expect(adapter.resolveModel(OPENAI_CODEX_PROVIDER, 'missing')).rejects.toMatchObject({ code: 'UNKNOWN_MODEL' })
   })
 
-  it('reconstructs each pi-ai request from the supplied Harness history and tools', async () => {
+  it('reconstructs each Codex request from the supplied Harness history and tools', async () => {
     const { models, streamSimple } = fakeModels([
       { type: 'done', reason: 'stop', message: assistant({ content: [{ type: 'text', text: 'ok' }] }) },
     ])
@@ -147,8 +147,8 @@ describe('OpenAiCodexAdapter', () => {
     await collect(adapter.stream(options(history)))
     await collect(adapter.stream(options([history[3]!])) )
 
-    const firstContext = streamSimple.mock.calls[0]![1] as PiContext
-    const secondContext = streamSimple.mock.calls[1]![1] as PiContext
+    const firstContext = streamSimple.mock.calls[0]![1] as CodexContext
+    const secondContext = streamSimple.mock.calls[1]![1] as CodexContext
     expect(firstContext.systemPrompt).toBe('System instructions')
     expect(firstContext.tools).toEqual([{ name: 'search', description: 'Search', parameters: { type: 'object' } }])
     expect(firstContext.messages.map(entry => entry.role)).toEqual(['user', 'assistant', 'toolResult', 'user'])
@@ -208,7 +208,7 @@ describe('OpenAiCodexAdapter', () => {
     })
     expect(chunks.at(-1)).toMatchObject({
       type: 'finish', reason: { kind: 'tool-calls' },
-      replayState: { kind: 'pi-ai', version: 1, responseId: 'response-1' },
+      replayState: { kind: 'openai-codex', version: 1, responseId: 'response-1' },
     })
 
     const upstreamSecret = 'provider-token-secret'
@@ -253,7 +253,7 @@ describe('OpenAiCodexAdapter', () => {
 
   it('maps caller aborts to the published adapter failure', async () => {
     const controller = new AbortController()
-    const streamSimple = vi.fn((_model: Model<Api>, _context: PiContext, options?: ModelsSimpleStreamOptions) => (async function* () {
+    const streamSimple = vi.fn((_model: Model<Api>, _context: CodexContext, options?: ModelsSimpleStreamOptions) => (async function* () {
       controller.abort('stop')
       options?.signal?.throwIfAborted()
       yield { type: 'start', partial: assistant() } satisfies AssistantMessageEvent

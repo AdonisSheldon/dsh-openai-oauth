@@ -4,19 +4,20 @@ import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import type { WebServer } from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-attachment'
-import { createModels } from '@earendil-works/pi-ai'
-import type { AuthInteraction, MutableModels, OAuthAuth, Provider } from '@earendil-works/pi-ai'
-import { openaiCodexProvider } from '@earendil-works/pi-ai/providers/openai-codex'
 import { OpenAiCodexAdapter } from './adapter.js'
 import { AuthController } from './auth-controller.js'
+import { CodexModels } from './codex-models.js'
 import { OPENAI_CODEX_PROVIDER, SecureCredentialStore } from './credential-store.js'
+import { createOpenAiOAuth } from './openai-oauth.js'
 import { oauthRoute } from './oauth-http.js'
+import type { AuthInteraction, OAuthCredential } from './oauth-types.js'
 
 export { OpenAiCodexAdapter } from './adapter.js'
 export type { OpenAiCodexAdapterOptions, OpenAiCodexModels } from './adapter.js'
 export { AuthController, AuthControllerError } from './auth-controller.js'
 export type { AuthStatus, LoginMethod, PendingStatus } from './auth-controller.js'
 export { CredentialStoreError, OPENAI_CODEX_PROVIDER, SecureCredentialStore } from './credential-store.js'
+export { createOpenAiOAuth } from './openai-oauth.js'
 export { OAUTH_ROUTE_PATH } from './oauth-http.js'
 
 /** Cordis plugin identity. */
@@ -26,31 +27,24 @@ export const inject = ['llm']
 
 export interface PluginRuntime {
   credentials: SecureCredentialStore
-  models: MutableModels
+  models: CodexModels
   controller: AuthController
   adapter: OpenAiCodexAdapter
 }
 
 export interface CreatePluginRuntimeOptions {
   dshHome?: string
-  /** Test or embedding override for the provider-owned OAuth operation. */
-  login?: (interaction: AuthInteraction) => ReturnType<OAuthAuth['login']>
+  /** Test or embedding override for the plugin-owned OAuth operation. */
+  login?: (interaction: AuthInteraction) => Promise<OAuthCredential>
   attachments?: () => import('@deepseek-ai/dsh-attachment').AttachmentStore | undefined
-}
-
-function oauthOf(provider: Provider): OAuthAuth {
-  const oauth = provider.auth.oauth
-  if (oauth === undefined) throw new Error('openai-codex provider does not expose OAuth')
-  return oauth
 }
 
 /** Construct the shared credential, OAuth, model, and adapter runtime. */
 export function createPluginRuntime(options: CreatePluginRuntimeOptions = {}): PluginRuntime {
   const credentials = new SecureCredentialStore(resolveDshHome(options.dshHome))
-  const models = createModels({ credentials })
-  const provider = openaiCodexProvider()
-  models.setProvider(provider)
-  const login = options.login ?? (interaction => oauthOf(provider).login(interaction))
+  const oauth = createOpenAiOAuth()
+  const models = new CodexModels(credentials, { refresh: (credential, signal) => oauth.refresh(credential, signal) })
+  const login = options.login ?? (interaction => oauth.login(interaction))
   const controller = new AuthController(credentials, { login })
   const adapter = new OpenAiCodexAdapter(models, {
     ...options.attachments === undefined ? {} : { attachments: options.attachments },

@@ -11,6 +11,7 @@ interface PackageManifest {
   peerDependencies?: Record<string, string>
   peerDependenciesMeta?: Record<string, { optional?: boolean }>
   scripts?: Record<string, string>
+  files?: string[]
 }
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -25,6 +26,15 @@ describe('published package contract', () => {
 
     expect(value.name).toBe('dsh-openai-oauth')
     expect(value.bin).toEqual({ 'dsh-openai-login': 'lib/login.js' })
+    expect(value.files?.filter(path => path.startsWith('lib/'))).toEqual([
+      'lib/client.d.ts',
+      'lib/client.js',
+      'lib/index.d.ts',
+      'lib/index.js',
+      'lib/login.d.ts',
+      'lib/login.js',
+      'lib/src.js',
+    ])
   })
 
   it('installs only plugin-owned production dependencies', async () => {
@@ -33,15 +43,27 @@ describe('published package contract', () => {
     expect(value.dependencies).toEqual({
       'proper-lockfile': '4.1.2',
     })
-    expect(value.peerDependencies?.['@earendil-works/pi-ai']).toBe('0.82.1')
-    expect(value.devDependencies?.['@earendil-works/pi-ai']).toBe('0.82.1')
+    const forbidden = `@earendil-works/${['pi', 'ai'].join('-')}`
+    expect(value.peerDependencies).not.toHaveProperty(forbidden)
+    expect(value.devDependencies).not.toHaveProperty(forbidden)
+  })
+
+  it('ships runtime and declarations without the removed model library', async () => {
+    const forbidden = `@earendil-works/${['pi', 'ai'].join('-')}`
+    const published = await Promise.all([
+      readFile(resolve(root, 'lib/index.js'), 'utf8'),
+      readFile(resolve(root, 'lib/index.d.ts'), 'utf8'),
+      readFile(resolve(root, 'lib/src.js'), 'utf8'),
+    ])
+
+    expect(published.join('\n')).not.toContain(forbidden)
   })
 
   it('declares every DSH-provided runtime as an optional exact peer', async () => {
     const value = await manifest()
     const hostPeers = Object.keys(value.peerDependencies ?? {})
 
-    expect(hostPeers).toContain('@earendil-works/pi-ai')
+    expect(hostPeers).not.toContain(`@earendil-works/${['pi', 'ai'].join('-')}`)
     expect(hostPeers.length).toBeGreaterThan(0)
     for (const name of hostPeers) {
       expect(value.peerDependencies?.[name]).not.toMatch(/[~^*xX]|\|\||\s-\s/)

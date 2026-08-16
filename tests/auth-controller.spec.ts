@@ -2,9 +2,9 @@ import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { AuthInteraction, OAuthCredential } from '@earendil-works/pi-ai'
 import { AuthController, AuthControllerError } from '../src/auth-controller.js'
 import { OPENAI_CODEX_PROVIDER, SecureCredentialStore } from '../src/credential-store.js'
+import type { AuthInteraction, OAuthCredential } from '../src/oauth-types.js'
 
 const roots: string[] = []
 
@@ -39,13 +39,12 @@ async function eventually(check: () => boolean): Promise<void> {
 }
 
 afterEach(async () => {
-  delete process.env['PI_OAUTH_CALLBACK_HOST']
   const { rm } = await import('node:fs/promises')
   await Promise.all(roots.splice(0).map(path => rm(path, { recursive: true, force: true })))
 })
 
 describe('AuthController', () => {
-  it('passes the explicit Browser choice to pi-ai and publishes only the trusted URL', async () => {
+  it('passes the explicit Browser choice to OAuth and publishes only the trusted URL', async () => {
     const result = deferred<OAuthCredential>()
     const login = vi.fn(async (interaction: AuthInteraction) => {
       expect(await interaction.prompt({
@@ -188,15 +187,6 @@ describe('AuthController', () => {
     expect(await credentials.read(OPENAI_CODEX_PROVIDER)).toEqual(credential('old'))
   })
 
-  it('rejects non-loopback callback configuration before invoking pi-ai', async () => {
-    process.env['PI_OAUTH_CALLBACK_HOST'] = '0.0.0.0'
-    const login = vi.fn()
-    const controller = new AuthController(await store(), { login })
-
-    await expect(controller.start('browser')).rejects.toMatchObject({ code: 'UNSAFE_CALLBACK_HOST' })
-    expect(login).not.toHaveBeenCalled()
-  })
-
   it('maps a Browser callback collision to fixed Device Code guidance', async () => {
     const controller = new AuthController(await store(), {
       login: async (interaction) => {
@@ -240,7 +230,7 @@ describe('AuthController', () => {
     await expect(controller.start('device_code')).rejects.toBeInstanceOf(AuthControllerError)
   })
 
-  it('can dispose an attempt before pi-ai publishes login instructions', async () => {
+  it('can dispose an attempt before OAuth publishes login instructions', async () => {
     let aborted = false
     const controller = new AuthController(await store(), {
       login: interaction => new Promise<never>((_resolve, reject) => {

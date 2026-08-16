@@ -1,10 +1,7 @@
-/**
- * Lossless pi-ai assistant replay derived from the MIT-licensed
- * `@deepseek-ai/dsh-llm-pi-ai` implementation.
- */
+/** Lossless OpenAI Codex assistant replay metadata. */
 import { LlmError } from '@deepseek-ai/dsh-llm'
 import type { Message, ModelMessageSource } from '@deepseek-ai/dsh-llm'
-import type { Api, AssistantMessage, Usage as PiUsage } from '@earendil-works/pi-ai'
+import type { Api, AssistantMessage, Usage } from './models.js'
 
 type ReplayBlock =
   | { type: 'text'; textSignature?: string }
@@ -12,8 +9,8 @@ type ReplayBlock =
   | { type: 'tool-call'; thoughtSignature?: string }
 
 /** Minimal provider-native metadata required to replay a completed response. */
-export interface PiAiReplayState {
-  kind: 'pi-ai'
+export interface CodexReplayState {
+  kind: 'openai-codex'
   version: 1
   api: Api
   provider: string
@@ -36,7 +33,7 @@ function parseArguments(raw: string): Record<string, unknown> {
   return {}
 }
 
-function emptyUsage(): PiUsage {
+function emptyUsage(): Usage {
   return {
     input: 0,
     output: 0,
@@ -47,10 +44,10 @@ function emptyUsage(): PiUsage {
   }
 }
 
-/** Project a completed pi-ai response into durable JSON replay metadata. */
-export function toPiReplayState(message: AssistantMessage): PiAiReplayState {
+/** Project a completed Codex response into durable JSON replay metadata. */
+export function toCodexReplayState(message: AssistantMessage): CodexReplayState {
   return {
-    kind: 'pi-ai',
+    kind: 'openai-codex',
     version: 1,
     api: message.api,
     provider: message.provider,
@@ -82,10 +79,10 @@ function invalidReplay(message: string): never {
   throw new LlmError(`invalid OpenAI Codex replay state: ${message}`, 'INVALID_REPLAY_STATE')
 }
 
-function readReplayState(value: unknown): PiAiReplayState {
+function readReplayState(value: unknown): CodexReplayState {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return invalidReplay('expected an object')
   const state = value as Record<string, unknown>
-  if (state['kind'] !== 'pi-ai' || state['version'] !== 1) return invalidReplay('unsupported kind or version')
+  if (state['kind'] !== 'openai-codex' || state['version'] !== 1) return invalidReplay('unsupported kind or version')
   for (const key of ['api', 'provider', 'model'] as const) {
     if (typeof state[key] !== 'string' || state[key].length === 0) return invalidReplay(`${key} must be a non-empty string`)
   }
@@ -104,7 +101,7 @@ function readReplayState(value: unknown): PiAiReplayState {
     }
     if (block['redacted'] !== undefined && typeof block['redacted'] !== 'boolean') return invalidReplay(`block ${index} redacted must be boolean`)
   }
-  return state as unknown as PiAiReplayState
+  return state as unknown as CodexReplayState
 }
 
 function foreignAssistant(message: Message): AssistantMessage {
@@ -174,8 +171,8 @@ function replayedAssistant(message: Message, source: ModelMessageSource, raw: un
   }
 }
 
-/** Reconstruct one pi-ai assistant history message from Harness content. */
-export function toPiAssistant(message: Message): AssistantMessage {
+/** Reconstruct one Codex assistant history message from Harness content. */
+export function toCodexAssistant(message: Message): AssistantMessage {
   const source = message.source
   return source.kind === 'model' && source.replayState !== undefined
     ? replayedAssistant(message, source, source.replayState)

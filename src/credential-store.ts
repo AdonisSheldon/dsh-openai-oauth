@@ -11,13 +11,12 @@ import {
 import { join, resolve } from 'node:path'
 import lockfile from 'proper-lockfile'
 import type {
-  Credential,
   CredentialInfo,
   CredentialStore,
   OAuthCredential,
-} from '@earendil-works/pi-ai'
+} from './oauth-types.js'
 
-/** The single pi-ai provider owned by this plugin. */
+/** The single provider owned by this plugin. */
 export const OPENAI_CODEX_PROVIDER = 'openai-codex'
 
 const ENVELOPE_VERSION = 1
@@ -115,7 +114,7 @@ function isMissing(error: unknown): boolean {
 }
 
 /**
- * Owner-only, versioned pi-ai credential store rooted below one Harness home.
+ * Owner-only, versioned OAuth credential store rooted below one Harness home.
  * All writes and deletion are serialized by an OS-visible lock and replace the
  * credential file atomically.
  */
@@ -219,7 +218,7 @@ export class SecureCredentialStore implements CredentialStore {
     }
   }
 
-  async read(providerId: string): Promise<Credential | undefined> {
+  async read(providerId: string): Promise<OAuthCredential | undefined> {
     if (providerId !== OPENAI_CODEX_PROVIDER) return undefined
     await this.ensureStateDirectory()
     const stored = (await this.readEnvelope())?.credentials[OPENAI_CODEX_PROVIDER]
@@ -233,8 +232,8 @@ export class SecureCredentialStore implements CredentialStore {
 
   async modify(
     providerId: string,
-    fn: (current: Credential | undefined) => Promise<Credential | undefined>,
-  ): Promise<Credential | undefined> {
+    fn: (current: OAuthCredential | undefined) => Promise<OAuthCredential | undefined>,
+  ): Promise<OAuthCredential | undefined> {
     if (providerId !== OPENAI_CODEX_PROVIDER) {
       throw new CredentialStoreError('UNSUPPORTED_PROVIDER', 'This credential store accepts only openai-codex.')
     }

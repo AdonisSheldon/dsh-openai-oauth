@@ -1,15 +1,15 @@
-/** Harness-to-pi-ai request conversion derived from MIT-licensed DeepSeek Harness. */
+/** Harness-to-Codex request conversion. */
 import { CallId, LlmError } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock, GenerateOptions } from '@deepseek-ai/dsh-llm'
 import type { AttachmentStore } from '@deepseek-ai/dsh-attachment'
 import type {
-  Context as PiContext,
+  CodexContext,
   ImageContent,
-  Message as PiMessage,
+  CodexMessage,
   TextContent,
-  Tool as PiTool,
-} from '@earendil-works/pi-ai'
-import { toPiAssistant } from './replay.js'
+  CodexTool,
+} from './models.js'
+import { toCodexAssistant } from './replay.js'
 
 function unsupported(type: string, role: string): never {
   throw new LlmError(`OpenAI Codex cannot represent ${type} content in a ${role} message`, 'UNSUPPORTED_CONTENT')
@@ -55,7 +55,7 @@ async function userContent(
     : content
 }
 
-function toolsOf(options: GenerateOptions): PiTool[] | undefined {
+function toolsOf(options: GenerateOptions): CodexTool[] | undefined {
   return options.tools?.map(tool => ({
     name: tool.name,
     description: tool.description,
@@ -63,13 +63,13 @@ function toolsOf(options: GenerateOptions): PiTool[] | undefined {
   }))
 }
 
-/** Convert the complete Harness request into one fresh pi-ai context. */
-export async function toPiContext(
+/** Convert the complete Harness request into one fresh Codex context. */
+export async function toCodexContext(
   options: GenerateOptions,
   attachments?: AttachmentStore,
-): Promise<PiContext> {
+): Promise<CodexContext> {
   const toolNames = new Map<CallId, string>()
-  const messages: PiMessage[] = []
+  const messages: CodexMessage[] = []
   for (const message of options.messages) {
     if (message.role === 'system') {
       if (message.content.some(block => block.type !== 'text')) unsupported('non-text', 'system')
@@ -81,7 +81,7 @@ export async function toPiContext(
       continue
     }
     if (message.role === 'assistant') {
-      const assistant = toPiAssistant(message)
+      const assistant = toCodexAssistant(message)
       for (const block of assistant.content) {
         if (block.type === 'toolCall') toolNames.set(CallId(block.id), block.name)
       }
