@@ -34,7 +34,6 @@ export default defineConfig([
     target: 'es2022',
     dts: false,
     clean: false,
-    sourcemap: true,
     deps: {
       neverBundle: [...CLIENT_EXTERNALS],
       alwaysBundle: (id: string) => CLIENT_EXTERNALS.includes(id) ? undefined : true,

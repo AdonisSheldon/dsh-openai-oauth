@@ -10,8 +10,8 @@
     "exactOptionalPropertyTypes": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "types": ["node", "vitest/globals"],
+    "types": ["node"],
     "noEmit": true
   },
-  "include": ["src", "tests", "tsdown.config.ts"]
+  "include": ["src", "tsdown.config.ts"]
 }

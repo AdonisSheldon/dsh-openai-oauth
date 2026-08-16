@@ -22,7 +22,6 @@
   "files": [
     "lib/client.d.ts",
     "lib/client.js",
-    "lib/client.js.map",
     "lib/index.d.ts",
     "lib/index.js",
     "lib/login.d.ts",
@@ -50,9 +49,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "check": "pnpm run typecheck && pnpm run test && pnpm run build",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "check": "pnpm run typecheck && pnpm run build",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -133,17 +130,12 @@
     "@deepseek-ai/dsh-host-webserver": "0.1.0-rc.6",
     "@deepseek-ai/dsh-llm": "0.1.0-rc.6",
     "@deepseek-ai/dsh-timeout": "0.1.0-rc.6",
-    "@testing-library/react": "16.3.2",
-    "@testing-library/user-event": "14.6.1",
     "@types/node": "22.20.0",
     "@types/proper-lockfile": "4.1.4",
     "@types/react": "18.3.28",
-    "jsdom": "26.1.0",
     "react": "18.3.1",
-    "react-dom": "18.3.1",
     "tsdown": "0.22.2",
-    "typescript": "5.9.2",
-    "vitest": "3.2.4"
+    "typescript": "5.9.2"
   },
   "packageManager": "pnpm@11.1.3"
 }
