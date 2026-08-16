@@ -16,14 +16,18 @@ function response(body: unknown, status = 200): Response {
 
 const t = (key: OAuthLocaleKey): string => en[key]
 
+const clipboard = vi.hoisted(() => ({ write: vi.fn<(text: string) => Promise<boolean>>() }))
+
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
   Button: ({ variant = 'ghost', ...props }: { variant?: string } & ButtonHTMLAttributes<HTMLButtonElement>) => (
     <button type="button" className={`dsh-button-${variant}`} {...props} />
   ),
+  writeClipboard: clipboard.write,
 }))
 
 afterEach(() => {
   cleanup()
+  clipboard.write.mockReset()
   vi.unstubAllGlobals()
 })
 
@@ -45,6 +49,7 @@ describe('OpenAI OAuth settings section', () => {
   })
 
   it('makes Browser and Device Code explicit choices and presents device instructions', async () => {
+    clipboard.write.mockResolvedValue(true)
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(response({ state: 'disconnected' }))
       .mockResolvedValueOnce(response({
@@ -64,12 +69,41 @@ describe('OpenAI OAuth settings section', () => {
     await user.click(screen.getByRole('radio', { name: /Device Code/ }))
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
 
-    expect(await screen.findByText('ABCD-EFGH')).toBeDefined()
+    const code = await screen.findByRole('button', { name: 'Copy device code' })
+    expect(code.textContent).toContain('ABCD-EFGH')
+    await user.click(code)
+    expect(clipboard.write).toHaveBeenCalledWith('ABCD-EFGH')
+    expect(await screen.findByRole('button', { name: 'Device code copied' })).toBeDefined()
+    expect(screen.getByText('Copied')).toBeDefined()
     expect(screen.getByRole('link', { name: 'Open verification page' }).getAttribute('href'))
       .toBe('https://auth.openai.com/codex/device')
     const start = fetchMock.mock.calls[1]!
     expect(start[0]).toBe(`${OAUTH_ROUTE_PATH}/start`)
     expect(JSON.parse(String((start[1] as RequestInit).body))).toEqual({ method: 'device_code' })
+  })
+
+  it('reports when the host rejects a Device Code clipboard write', async () => {
+    clipboard.write.mockResolvedValue(false)
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response({ state: 'disconnected' }))
+      .mockResolvedValueOnce(response({
+        state: 'pending', attemptId: 'attempt-copy-failed', method: 'device_code',
+        deviceCode: {
+          userCode: 'WXYZ-1234',
+          verificationUri: 'https://auth.openai.com/codex/device',
+          expiresAt: Date.now() + 900_000,
+        },
+      }))
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+    render(<OpenAiOAuthSection close={() => {}} t={t} />)
+    await screen.findByText('Not connected')
+
+    await user.click(screen.getByRole('radio', { name: /Device Code/ }))
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+    await user.click(await screen.findByRole('button', { name: 'Copy device code' }))
+
+    expect((await screen.findByRole('alert')).textContent).toBe('Could not copy the device code. Copy it manually.')
   })
 
   it('opens only the trusted Browser authorization URL returned by the Host', async () => {

@@ -27,6 +27,11 @@ declare const en: {
   readonly browserWaitingHelp: "Finish sign-in in the OpenAI window. This page updates automatically.";
   readonly continueBrowser: "Continue in browser";
   readonly deviceInstructions: "Open the verification page and enter this code:";
+  readonly copyCode: "Copy device code";
+  readonly copiedCode: "Device code copied";
+  readonly copyHint: "Click to copy";
+  readonly copied: "Copied";
+  readonly copyFailed: "Could not copy the device code. Copy it manually.";
   readonly openVerification: "Open verification page";
   readonly expires: "This code expires at {time}.";
   readonly requestFailed: "The local Harness Host did not complete the OAuth request.";

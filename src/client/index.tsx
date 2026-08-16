@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
-import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -42,7 +42,9 @@ const styles: Record<string, CSSProperties> = {
   pendingHelp: { color: 'var(--dsw-alias-label-tertiary)', fontSize: 12, lineHeight: '18px', margin: '2px 0 0' },
   pendingActions: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingLeft: 20 },
   primaryLink: { boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 36, padding: '0 14px', borderRadius: 18, background: 'var(--dsw-alias-button-primary-fill)', color: 'var(--dsw-alias-label-primary-foreground)', fontSize: 14, lineHeight: '22px', textDecoration: 'none' },
-  code: { display: 'inline-block', padding: '4px 8px', borderRadius: 6, background: 'var(--dsw-alias-bg-layer-3)', color: 'var(--dsw-alias-label-primary)', fontSize: 18, fontWeight: 600, letterSpacing: '0.08em', margin: '8px 0' },
+  codeButton: { display: 'flex', alignItems: 'center', gap: 10, width: 'fit-content', margin: '8px 0 0', padding: '6px 10px', border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 8, background: 'var(--dsw-alias-bg-layer-3)', color: 'var(--dsw-alias-label-primary)', font: 'inherit', cursor: 'pointer' },
+  code: { fontSize: 18, fontWeight: 600, letterSpacing: '0.08em' },
+  copyHint: { color: 'var(--dsw-alias-label-tertiary)', fontSize: 12, lineHeight: '18px' },
   error: { color: 'var(--dsw-alias-state-error-primary)', fontSize: 12, lineHeight: '18px', margin: 0 },
   secondary: { color: 'var(--dsw-alias-label-tertiary)', fontSize: 12, lineHeight: '18px', margin: '6px 0 0' },
 }
@@ -87,6 +89,7 @@ export function OpenAiOAuthSection({ t }: OpenAiOAuthSectionProps): ReactNode {
   const [method, setMethod] = useState<LoginMethod>('browser')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
+  const [copiedCode, setCopiedCode] = useState<string>()
 
   const refresh = useCallback(async (): Promise<void> => {
     try {
@@ -150,7 +153,20 @@ export function OpenAiOAuthSection({ t }: OpenAiOAuthSectionProps): ReactNode {
     }
   }
 
+  const copyDeviceCode = async (code: string): Promise<void> => {
+    if (await writeClipboard(code)) {
+      setCopiedCode(code)
+      setError(undefined)
+      return
+    }
+    setCopiedCode(undefined)
+    setError(t('copyFailed'))
+  }
+
   const connected = status?.state === 'connected'
+  const deviceCodeCopied = status?.state === 'pending'
+    && status.method === 'device_code'
+    && copiedCode === status.deviceCode.userCode
   const statusText = status === undefined
     ? t('loading')
     : connected
@@ -220,7 +236,20 @@ export function OpenAiOAuthSection({ t }: OpenAiOAuthSectionProps): ReactNode {
                   <span style={styles.pendingDot} aria-hidden="true" />
                   <div>
                     <p style={styles.pendingTitle}>{t('deviceInstructions')}</p>
-                    <code style={styles.code}>{status.deviceCode.userCode}</code>
+                    <button
+                      type="button"
+                      style={styles.codeButton}
+                      aria-label={t(deviceCodeCopied ? 'copiedCode' : 'copyCode')}
+                      onClick={() => { void copyDeviceCode(status.deviceCode.userCode) }}
+                    >
+                      <code style={styles.code}>{status.deviceCode.userCode}</code>
+                      <span
+                        aria-hidden="true"
+                        style={{ ...styles.copyHint, ...(deviceCodeCopied ? { color: 'var(--dsw-alias-state-success-primary)' } : {}) }}
+                      >
+                        {t(deviceCodeCopied ? 'copied' : 'copyHint')}
+                      </span>
+                    </button>
                     <p style={styles.secondary}>{t('expires', { time: new Date(status.deviceCode.expiresAt).toLocaleTimeString() })}</p>
                   </div>
                 </div>
