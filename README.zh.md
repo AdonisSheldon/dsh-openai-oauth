@@ -42,6 +42,26 @@ dsh plugin --profile web add dsh-openai-oauth@0.1.0
 dsh --profile web --dump-config
 ```
 
+### 让编码 Agent 安装
+
+把下面这段指令复制给能够操作本机终端的 Agent。示例默认使用全局安装的 `dsh`；如果 Agent 位于 DeepSeek Harness 源码 checkout 中，应统一改用 `pnpm dsh`。
+
+```text
+请把 dsh-openai-oauth 作为外部插件安装到 DeepSeek Harness 的 web profile。
+
+要求：
+1. 不要修改或提交 DeepSeek Harness 源码目录中的任何文件，不要把插件源码复制进该仓库，也不要手动修改 cordis.yml 或 profile 的包管理文件。
+2. 先检查 `node --version`、`pnpm --version` 和可用的 DSH 启动命令。本插件要求 Node.js ^22.19.0 或 >=24.0.0，以及 DeepSeek Harness 0.1.0-rc.6。如果 Harness 版本不一致，停止安装并报告版本差异，不要通过修改 Harness 代码来兼容。
+3. 已全局安装 DSH 时使用 `dsh`；只有 Harness 源码 checkout 时，所有 DSH 命令统一使用 `pnpm dsh`。
+4. 执行 `<dsh启动命令> plugin --profile web add github:AdonisSheldon/dsh-openai-oauth`。如果我指定了 tag 或 commit，在 GitHub spec 后追加 `#<tag或commit>`。不要批准无关的安装脚本，也不要扩大文件系统权限。
+5. 执行 `<dsh启动命令> web --dump-config`，确认输出包含 `dsh-openai-oauth`。
+6. 如果 DSH Web 已在运行，不要在 3080 端口上再启动一个进程。只重启由你启动或能够确认归属的 DSH 进程；否则告诉我需要手动重启一次。
+7. 不要代替我登录 ChatGPT，也不要输出任何凭据。安装完成后，告诉我打开“设置 -> OpenAI OAuth”，选择“浏览器登录”或“设备代码”，由我亲自完成登录。
+8. 如果安装或验证失败，返回完整命令和原始错误。不要通过修改 DeepSeek Harness 源码来绕过错误。
+
+最后报告安装到的 profile、包来源、验证结果，以及是否仍需重启。
+```
+
 如果 DSH Web 已经运行，安装后手动重启一次。
 
 ## 登录与使用
