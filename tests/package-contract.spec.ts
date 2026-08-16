@@ -29,6 +29,7 @@ describe('published package contract', () => {
     expect(value.files?.filter(path => path.startsWith('lib/'))).toEqual([
       'lib/client.d.ts',
       'lib/client.js',
+      'lib/client.js.map',
       'lib/index.d.ts',
       'lib/index.js',
       'lib/login.d.ts',
