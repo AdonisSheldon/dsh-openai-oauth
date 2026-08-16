@@ -27,8 +27,6 @@ declare const en: {
   readonly deviceInstructions: "Open the verification page and enter this code:";
   readonly openVerification: "Open verification page";
   readonly expires: "This code expires at {time}.";
-  readonly models: "Available models";
-  readonly noModels: "The provider model list will appear here.";
   readonly requestFailed: "The local Harness Host did not complete the OAuth request.";
 };
 type OAuthLocaleKey = keyof typeof en;

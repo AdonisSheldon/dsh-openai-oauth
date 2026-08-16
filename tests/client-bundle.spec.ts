@@ -26,6 +26,7 @@ describe('published client bundle', () => {
     const modules = new Map<string, unknown>([
       ['react', await import('react')],
       ['react/jsx-runtime', await import('react/jsx-runtime')],
+      ['@deepseek-ai/dsh-client-ui-primitives', { Button: () => null }],
     ])
     const exports = handoff?.factory((specifier) => {
       if (!modules.has(specifier)) throw new Error(`Unexpected client external: ${specifier}`)

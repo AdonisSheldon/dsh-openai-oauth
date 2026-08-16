@@ -24,6 +24,9 @@ importers:
       '@deepseek-ai/dsh-client-runtime':
         specifier: 0.1.0-rc.6
         version: 0.1.0-rc.6(05f7edba9022a1b3a4f3940ba73ef78c)
+      '@deepseek-ai/dsh-client-ui-primitives':
+        specifier: 0.1.0-rc.6
+        version: 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
       '@deepseek-ai/dsh-client-ui-settings':
         specifier: 0.1.0-rc.6
         version: 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-api-remotes@0.1.0-rc.6(83d9c5c9b8349236135a0a0b0d2ee7ec))(@deepseek-ai/dsh-client-connection@0.1.0-rc.6)(@deepseek-ai/dsh-client-runtime@0.1.0-rc.6(05f7edba9022a1b3a4f3940ba73ef78c))(@deepseek-ai/dsh-client-schema-form@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-client-ui-slots@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-settings@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/schemastery@3.18.1))(react@18.3.1)

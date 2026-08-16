@@ -1,19 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { AuthStatus, LoginMethod, PendingStatus } from '../auth-controller.js'
 import { OAUTH_ROUTE_PATH } from '../protocol.js'
 import { en, zh, type OAuthLocaleKey } from './locales.js'
-
-interface ModelRow {
-  id: string
-  name: string
-}
-
-type HostStatus = AuthStatus & { models?: readonly ModelRow[] }
 
 export interface OpenAiOAuthSectionInjected {
   t: (key: OAuthLocaleKey, params?: Record<string, string | number>) => string
@@ -40,14 +34,9 @@ const styles: Record<string, CSSProperties> = {
   choice: { display: 'grid', gridTemplateColumns: '20px minmax(0, 1fr)', gap: '2px 8px', marginTop: 12, cursor: 'pointer' },
   choiceHelp: { color: 'var(--color-text-secondary, #667085)', fontSize: 13, lineHeight: 1.45, gridColumn: '2' },
   actions: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 18 },
-  button: { border: '1px solid var(--color-border, #b8c0cc)', borderRadius: 7, background: 'var(--color-surface, #fff)', color: 'inherit', cursor: 'pointer', padding: '8px 12px' },
-  primary: { background: 'var(--color-accent, #155eef)', border: '1px solid var(--color-accent, #155eef)', color: '#fff' },
   pending: { background: 'var(--color-surface-subtle, #f8fafc)', borderRadius: 8, marginTop: 18, padding: 14, lineHeight: 1.5 },
   code: { display: 'inline-block', fontSize: 20, fontWeight: 700, letterSpacing: '0.08em', margin: '8px 0' },
   error: { color: 'var(--color-danger, #b42318)', margin: '14px 0 0' },
-  models: { borderTop: '1px solid var(--color-border, #e4e7ec)', marginTop: 20, paddingTop: 18 },
-  modelList: { margin: '10px 0 0', paddingLeft: 20, lineHeight: 1.7 },
-  modelId: { color: 'var(--color-text-secondary, #667085)', fontSize: 12, marginLeft: 6 },
   secondary: { color: 'var(--color-text-secondary, #667085)', fontSize: 13 },
 }
 
@@ -87,14 +76,14 @@ function trustedAuthorizationUrl(raw: string): string | undefined {
 
 /** Dedicated settings section for the plugin-owned OAuth state machine. */
 export function OpenAiOAuthSection({ t }: OpenAiOAuthSectionProps): ReactNode {
-  const [status, setStatus] = useState<HostStatus>()
+  const [status, setStatus] = useState<AuthStatus>()
   const [method, setMethod] = useState<LoginMethod>('browser')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
 
   const refresh = useCallback(async (): Promise<void> => {
     try {
-      setStatus(await hostRequest<HostStatus>('/status'))
+      setStatus(await hostRequest<AuthStatus>('/status'))
       setError(undefined)
     } catch {
       setError(t('requestFailed'))
@@ -159,8 +148,6 @@ export function OpenAiOAuthSection({ t }: OpenAiOAuthSectionProps): ReactNode {
     ? t('loading')
     : connected ? t('connected') : status.state === 'failed' ? t('failed') : t('disconnected')
   const statusColor = connected ? '#079455' : status?.state === 'failed' ? '#d92d20' : '#98a2b3'
-  const models = status?.models ?? []
-
   return (
     <section style={styles.section} aria-labelledby="openai-oauth-title">
       <h2 id="openai-oauth-title" style={styles.title}>{t('title')}</h2>
@@ -211,20 +198,11 @@ export function OpenAiOAuthSection({ t }: OpenAiOAuthSectionProps): ReactNode {
 
         <div style={styles.actions}>
           {connected
-            ? <button type="button" style={styles.button} disabled={busy} onClick={() => { void logout() }}>{t('signOut')}</button>
+            ? <Button variant="outline" disabled={busy} onClick={() => { void logout() }}>{t('signOut')}</Button>
             : status?.state === 'pending'
-              ? <button type="button" style={styles.button} disabled={busy} onClick={() => { void cancel() }}>{t('cancel')}</button>
-              : <button type="button" style={{ ...styles.button, ...styles.primary }} disabled={busy || status === undefined} onClick={() => { void start() }}>{t('signIn')}</button>}
-          <button type="button" style={styles.button} disabled={busy} onClick={() => { void refresh() }}>{t('refresh')}</button>
-        </div>
-
-        <div style={styles.models}>
-          <h3 style={styles.heading}>{t('models')}</h3>
-          {models.length === 0
-            ? <p style={styles.secondary}>{t('noModels')}</p>
-            : <ul style={styles.modelList}>{models.map(model => (
-                <li key={model.id}>{model.name}<code style={styles.modelId}>{model.id}</code></li>
-              ))}</ul>}
+              ? <Button variant="outline" disabled={busy} onClick={() => { void cancel() }}>{t('cancel')}</Button>
+              : <Button variant="primary" disabled={busy || status === undefined} onClick={() => { void start() }}>{t('signIn')}</Button>}
+          <Button variant="outline" disabled={busy} onClick={() => { void refresh() }}>{t('refresh')}</Button>
         </div>
       </div>
     </section>

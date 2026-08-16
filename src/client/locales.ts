@@ -22,8 +22,6 @@ export const en = {
   deviceInstructions: 'Open the verification page and enter this code:',
   openVerification: 'Open verification page',
   expires: 'This code expires at {time}.',
-  models: 'Available models',
-  noModels: 'The provider model list will appear here.',
   requestFailed: 'The local Harness Host did not complete the OAuth request.',
 } as const
 
@@ -51,8 +49,6 @@ export const zh: Record<keyof typeof en, string> = {
   deviceInstructions: '打开验证页面并输入此代码：',
   openVerification: '打开验证页面',
   expires: '此代码将在 {time} 过期。',
-  models: '可用模型',
-  noModels: '模型列表会显示在这里。',
   requestFailed: '本机 Harness Host 未能完成 OAuth 请求。',
 }
 

@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
+import type { ButtonHTMLAttributes } from 'react'
 import { OpenAiOAuthSection } from '../src/client/index.js'
 import { en, type OAuthLocaleKey } from '../src/client/locales.js'
 import { OAUTH_ROUTE_PATH } from '../src/protocol.js'
@@ -15,15 +16,37 @@ function response(body: unknown, status = 200): Response {
 
 const t = (key: OAuthLocaleKey): string => en[key]
 
+vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
+  Button: ({ variant = 'ghost', ...props }: { variant?: string } & ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button type="button" className={`dsh-button-${variant}`} {...props} />
+  ),
+}))
+
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
 })
 
 describe('OpenAI OAuth settings section', () => {
+  it('uses Harness-styled action buttons', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({ state: 'disconnected' })))
+    render(<OpenAiOAuthSection close={() => {}} t={t} />)
+
+    await screen.findByText('Not connected')
+    expect(screen.getByRole('button', { name: 'Refresh status' }).className).not.toBe('')
+  })
+
+  it('does not repeat the provider model catalog in OAuth settings', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({ state: 'disconnected' })))
+    render(<OpenAiOAuthSection close={() => {}} t={t} />)
+
+    await screen.findByText('Not connected')
+    expect(screen.queryByText('Available models')).toBeNull()
+  })
+
   it('makes Browser and Device Code explicit choices and presents device instructions', async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(response({ state: 'disconnected', models: [] }))
+      .mockResolvedValueOnce(response({ state: 'disconnected' }))
       .mockResolvedValueOnce(response({
         state: 'pending', attemptId: 'attempt-1', method: 'device_code',
         deviceCode: {
@@ -51,7 +74,7 @@ describe('OpenAI OAuth settings section', () => {
 
   it('opens only the trusted Browser authorization URL returned by the Host', async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(response({ state: 'disconnected', models: [] }))
+      .mockResolvedValueOnce(response({ state: 'disconnected' }))
       .mockResolvedValueOnce(response({
         state: 'pending', attemptId: 'attempt-2', method: 'browser',
         browser: { authorizationUrl: 'https://auth.openai.com/oauth/authorize?state=public', callback: 'waiting' },
@@ -73,17 +96,15 @@ describe('OpenAI OAuth settings section', () => {
       .toBe('https://auth.openai.com/oauth/authorize?state=public')
   })
 
-  it('renders connected models and performs explicit logout', async () => {
+  it('renders connected status and performs explicit logout', async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(response({ state: 'connected', models: [{ id: 'gpt-5.6-sol', name: 'GPT-5.6 Sol' }] }))
+      .mockResolvedValueOnce(response({ state: 'connected' }))
       .mockResolvedValueOnce(response({ state: 'disconnected' }))
     vi.stubGlobal('fetch', fetchMock)
     const user = userEvent.setup()
     render(<OpenAiOAuthSection close={() => {}} t={t} />)
 
     expect(await screen.findByText('Connected')).toBeDefined()
-    expect(screen.getByText('GPT-5.6 Sol')).toBeDefined()
-    expect(screen.getByText('gpt-5.6-sol')).toBeDefined()
     await user.click(screen.getByRole('button', { name: 'Sign out' }))
 
     await waitFor(() => {
@@ -96,7 +117,7 @@ describe('OpenAI OAuth settings section', () => {
 
   it('shows fixed Host errors as an accessible alert', async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(response({ state: 'disconnected', models: [] }))
+      .mockResolvedValueOnce(response({ state: 'disconnected' }))
       .mockResolvedValueOnce(response({
         error: { code: 'BROWSER_CALLBACK_UNAVAILABLE', message: 'Browser callback port 1455 is unavailable. Retry after freeing it or choose Device Code.' },
       }, 502))

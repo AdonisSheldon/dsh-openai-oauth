@@ -34,7 +34,7 @@ function controller(): OAuthHttpController & {
 }
 
 async function serve(auth: OAuthHttpController): Promise<{ origin: string; host: string }> {
-  const route = oauthRoute(auth, async () => [{ id: 'gpt-test', name: 'GPT Test' }])
+  const route = oauthRoute(auth)
   const server = createServer((req, res) => { void route.handler(req, res) })
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject)
@@ -76,7 +76,7 @@ afterEach(async () => {
 })
 
 describe('OAuth Host route', () => {
-  it('returns only redacted state and model identifiers with defensive headers', async () => {
+  it('returns only redacted OAuth state with defensive headers', async () => {
     const auth = controller()
     const { origin } = await serve(auth)
 
@@ -86,7 +86,7 @@ describe('OAuth Host route', () => {
     expect(response.headers.get('cache-control')).toBe('no-store')
     expect(response.headers.get('access-control-allow-origin')).toBeNull()
     expect(response.headers.get('x-content-type-options')).toBe('nosniff')
-    expect(await response.json()).toEqual({ state: 'disconnected', models: [{ id: 'gpt-test', name: 'GPT Test' }] })
+    expect(await response.json()).toEqual({ state: 'disconnected' })
   })
 
   it('starts the explicitly selected Browser or Device Code method', async () => {
