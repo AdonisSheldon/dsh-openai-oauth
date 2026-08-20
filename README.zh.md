@@ -20,7 +20,7 @@
 
 ## 准备 DSH
 
-- DeepSeek Harness `0.1.0-rc.6`
+- DeepSeek Harness `0.1.0-rc.8`
 - Node.js `^22.19.0` 或 `>=24.0.0`
 - `pnpm` 已加入 `PATH`
 - 当前具有 Codex 使用资格的 ChatGPT 账号

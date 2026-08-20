@@ -24,7 +24,7 @@ The task is complete when all of the following are true:
 Confirm these prerequisites before making changes:
 
 - macOS or Linux;
-- DeepSeek Harness `0.1.0-rc.6`;
+- DeepSeek Harness `0.1.0-rc.8`;
 - Node.js `^22.19.0` or `>=24.0.0`;
 - `pnpm` available on `PATH`.
 

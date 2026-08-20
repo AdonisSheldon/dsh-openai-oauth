@@ -20,7 +20,7 @@ Sign in to ChatGPT from DeepSeek Harness and use available Codex models without 
 
 ## Requirements
 
-- DeepSeek Harness `0.1.0-rc.6`
+- DeepSeek Harness `0.1.0-rc.8`
 - Node.js `^22.19.0` or `>=24.0.0`
 - `pnpm` on `PATH`
 - A ChatGPT account with Codex access
