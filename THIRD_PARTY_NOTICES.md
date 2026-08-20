@@ -2,4 +2,4 @@
 
 This project uses `proper-lockfile`, licensed under the MIT License.
 
-The Harness message and stream conversion and the OAuth callback wordmark include portions derived from MIT-licensed DeepSeek Harness source code, copyright (c) 2026 DeepSeek. See <https://github.com/deepseek-ai/deepseek-harness>. The MIT terms are reproduced in this package's `LICENSE`.
+The Harness message and stream conversion and the OAuth callback and README wordmarks include portions derived from MIT-licensed DeepSeek Harness source code, copyright (c) 2026 DeepSeek. See <https://github.com/deepseek-ai/deepseek-harness>. The MIT terms are reproduced in this package's `LICENSE`.

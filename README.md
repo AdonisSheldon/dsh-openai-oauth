@@ -1,6 +1,12 @@
-# dsh-openai-oauth
+<p align="center">
+  <img src="docs/assets/readme-header.svg" width="100%" alt="dsh-openai-oauth — OpenAI OAuth community plugin for DeepSeek Harness">
+</p>
 
-English | [中文](README.zh.md)
+<h1 align="center">dsh-openai-oauth</h1>
+
+<p align="center"><strong>OpenAI OAuth for DeepSeek Harness</strong></p>
+
+<p align="center">English | <a href="README.zh.md">中文</a></p>
 
 Sign in to ChatGPT from DeepSeek Harness and use available Codex models without an OpenAI API key or Codex CLI. The plugin keeps the standard DSH sessions, tools, permissions, and model selector.
 

@@ -28,6 +28,7 @@
     "lib/login.js",
     "lib/src.js",
     "cordis.patch.yml",
+    "docs/assets/readme-header.svg",
     "README.md",
     "README.zh.md",
     "SECURITY.md",

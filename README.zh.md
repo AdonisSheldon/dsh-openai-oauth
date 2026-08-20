@@ -1,6 +1,12 @@
-# dsh-openai-oauth
+<p align="center">
+  <img src="docs/assets/readme-header.svg" width="100%" alt="dsh-openai-oauth — DeepSeek Harness 的 OpenAI OAuth 社区插件">
+</p>
 
-[English](README.md) | 中文
+<h1 align="center">dsh-openai-oauth</h1>
+
+<p align="center"><strong>DeepSeek Harness 的 OpenAI OAuth 插件</strong></p>
+
+<p align="center"><a href="README.md">English</a> | 中文</p>
 
 在 DeepSeek Harness 中直接登录 ChatGPT 并使用可用的 Codex 模型，不需要 OpenAI API Key，也不依赖 Codex CLI。插件保留 DSH 原有的会话、工具、权限和模型选择。
 
