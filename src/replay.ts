@@ -1,6 +1,6 @@
 /** Lossless OpenAI Codex assistant replay metadata. */
 import { LlmError } from '@deepseek-ai/dsh-llm'
-import type { Message, ModelMessageSource } from '@deepseek-ai/dsh-llm'
+import type { Message, ModelMessageSource, ReplayEnvelope } from '@deepseek-ai/dsh-llm'
 import type { Api, AssistantMessage, Usage } from './models.js'
 
 type ReplayBlock =
@@ -8,8 +8,8 @@ type ReplayBlock =
   | { type: 'reasoning'; thinkingSignature?: string; redacted?: boolean }
   | { type: 'tool-call'; thoughtSignature?: string }
 
-/** Minimal provider-native metadata required to replay a completed response. */
-export interface CodexReplayState {
+/** Response-level metadata required to replay a completed Codex response. */
+export interface CodexReplayResponse {
   kind: 'openai-codex'
   version: 1
   api: Api
@@ -18,6 +18,10 @@ export interface CodexReplayState {
   responseModel?: string
   responseId?: string
   stopReason: AssistantMessage['stopReason']
+}
+
+interface CodexReplayState {
+  response: CodexReplayResponse
   blocks: ReplayBlock[]
 }
 
@@ -45,8 +49,8 @@ function emptyUsage(): Usage {
 }
 
 /** Project a completed Codex response into durable JSON replay metadata. */
-export function toCodexReplayState(message: AssistantMessage): CodexReplayState {
-  return {
+export function toCodexReplayState(message: AssistantMessage): ReplayEnvelope {
+  const response: CodexReplayResponse = {
     kind: 'openai-codex',
     version: 1,
     api: message.api,
@@ -55,6 +59,9 @@ export function toCodexReplayState(message: AssistantMessage): CodexReplayState 
     ...message.responseModel === undefined ? {} : { responseModel: message.responseModel },
     ...message.responseId === undefined ? {} : { responseId: message.responseId },
     stopReason: message.stopReason,
+  }
+  return {
+    response,
     blocks: message.content.map((block): ReplayBlock => {
       switch (block.type) {
         case 'text': return {
@@ -80,19 +87,23 @@ function invalidReplay(message: string): never {
 }
 
 function readReplayState(value: unknown): CodexReplayState {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return invalidReplay('expected an object')
-  const state = value as Record<string, unknown>
-  if (state['kind'] !== 'openai-codex' || state['version'] !== 1) return invalidReplay('unsupported kind or version')
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return invalidReplay('expected a replay envelope')
+  const envelope = value as Record<string, unknown>
+  const rawResponse = envelope['response']
+  if (typeof rawResponse !== 'object' || rawResponse === null || Array.isArray(rawResponse)) return invalidReplay('expected a response object')
+  const response = rawResponse as Record<string, unknown>
+  if (response['kind'] !== 'openai-codex' || response['version'] !== 1) return invalidReplay('unsupported kind or version')
   for (const key of ['api', 'provider', 'model'] as const) {
-    if (typeof state[key] !== 'string' || state[key].length === 0) return invalidReplay(`${key} must be a non-empty string`)
+    if (typeof response[key] !== 'string' || response[key].length === 0) return invalidReplay(`${key} must be a non-empty string`)
   }
-  if (!['stop', 'length', 'toolUse', 'error', 'aborted'].includes(String(state['stopReason']))) {
+  if (!['stop', 'length', 'toolUse', 'error', 'aborted'].includes(String(response['stopReason']))) {
     return invalidReplay('unknown stop reason')
   }
-  if (state['responseModel'] !== undefined && typeof state['responseModel'] !== 'string') return invalidReplay('responseModel must be a string')
-  if (state['responseId'] !== undefined && typeof state['responseId'] !== 'string') return invalidReplay('responseId must be a string')
-  if (!Array.isArray(state['blocks'])) return invalidReplay('blocks must be an array')
-  for (const [index, value] of state['blocks'].entries()) {
+  if (response['responseModel'] !== undefined && typeof response['responseModel'] !== 'string') return invalidReplay('responseModel must be a string')
+  if (response['responseId'] !== undefined && typeof response['responseId'] !== 'string') return invalidReplay('responseId must be a string')
+  const blocks = envelope['blocks']
+  if (!Array.isArray(blocks)) return invalidReplay('blocks must be an array')
+  for (const [index, value] of blocks.entries()) {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) return invalidReplay(`block ${index} must be an object`)
     const block = value as Record<string, unknown>
     if (!['text', 'reasoning', 'tool-call'].includes(String(block['type']))) return invalidReplay(`block ${index} has an unknown type`)
@@ -101,7 +112,10 @@ function readReplayState(value: unknown): CodexReplayState {
     }
     if (block['redacted'] !== undefined && typeof block['redacted'] !== 'boolean') return invalidReplay(`block ${index} redacted must be boolean`)
   }
-  return state as unknown as CodexReplayState
+  return {
+    response: response as unknown as CodexReplayResponse,
+    blocks: blocks as ReplayBlock[],
+  }
 }
 
 function foreignAssistant(message: Message): AssistantMessage {
@@ -135,7 +149,7 @@ function foreignAssistant(message: Message): AssistantMessage {
 
 function replayedAssistant(message: Message, source: ModelMessageSource, raw: unknown): AssistantMessage {
   const state = readReplayState(raw)
-  if (state.provider !== source.provider || state.model !== source.model) return invalidReplay('provider or model does not match source')
+  if (state.response.provider !== source.provider || state.response.model !== source.model) return invalidReplay('provider or model does not match source')
   if (state.blocks.length !== message.content.length) return invalidReplay('block count does not match content')
   const content: AssistantMessage['content'] = message.content.map((block, index) => {
     const replay = state.blocks[index]
@@ -160,13 +174,13 @@ function replayedAssistant(message: Message, source: ModelMessageSource, raw: un
   return {
     role: 'assistant',
     content,
-    api: state.api,
-    provider: state.provider,
-    model: state.model,
-    ...state.responseModel === undefined ? {} : { responseModel: state.responseModel },
-    ...state.responseId === undefined ? {} : { responseId: state.responseId },
+    api: state.response.api,
+    provider: state.response.provider,
+    model: state.response.model,
+    ...state.response.responseModel === undefined ? {} : { responseModel: state.response.responseModel },
+    ...state.response.responseId === undefined ? {} : { responseId: state.response.responseId },
     usage: emptyUsage(),
-    stopReason: state.stopReason,
+    stopReason: state.response.stopReason,
     timestamp: 0,
   }
 }
