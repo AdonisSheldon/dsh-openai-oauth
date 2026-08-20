@@ -1,5 +1,6 @@
 import { createHash, randomBytes as nodeRandomBytes } from 'node:crypto'
 import { createServer } from 'node:http'
+import { BRAND_WORDMARK } from './brand-wordmark.js'
 import type { AuthInteraction, OAuthCredential } from './oauth-types.js'
 
 const CLIENT_ID = 'app_EMoamEEZ73f0CkXaXp7hrann'
@@ -106,8 +107,8 @@ function escapeHtml(value: string): string {
 function callbackPage(state: 'success' | 'error', message: string): string {
   const success = state === 'success'
   const title = success ? 'OpenAI sign-in complete' : 'OpenAI sign-in failed'
-  const heading = success ? 'Sign-in complete' : 'Sign-in failed'
-  const status = success ? 'Callback verified' : 'Callback rejected'
+  const heading = success ? 'OpenAI sign-in complete' : 'OpenAI sign-in failed'
+  const role = success ? 'status' : 'alert'
   return `<!doctype html>
 <html lang="en" data-page="oauth-callback" data-state="${state}" data-layout="flat">
 <head>
@@ -117,57 +118,44 @@ function callbackPage(state: 'success' | 'error', message: string): string {
   <link rel="icon" href="data:,">
   <title>${title}</title>
   <style>
-    :root { color-scheme: light dark; --page: #f9fafb; --text: #0f1115; --secondary: #61666b;
-      --tertiary: #81858c; --border: rgba(0, 0, 0, .1); --success: #22a559; --error: #e5484d; }
+    :root { color-scheme: light dark; --page: #fff; --text: #0f1115; --secondary: #61666b;
+      --brand-badge-text: #fff; --error: #ec1313; }
     @media (prefers-color-scheme: dark) {
-      :root { --page: #151517; --text: #f5f6f7; --secondary: #c4c7ca; --tertiary: #8b8e93;
-        --border: rgba(255, 255, 255, .12); --success: #4ecb7b; --error: #f06a6a; }
+      :root { --page: #151517; --text: #f9fafb; --secondary: #adb2b8;
+        --brand-badge-text: #151517; --error: #f25a5a; }
     }
     * { box-sizing: border-box; }
-    html, body { min-height: 100%; }
-    body { margin: 0; display: grid; place-items: center; padding: 24px; background: var(--page); color: var(--text);
+    html, body { min-height: 100%; min-height: 100dvh; }
+    body { margin: 0; display: grid; place-items: center; padding: 32px 24px; background: var(--page); color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
         'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
       -webkit-font-smoothing: antialiased; }
-    .shell { width: min(420px, 100%); }
-    .brand { display: flex; align-items: center; gap: 7px; margin-bottom: 38px; color: var(--secondary);
-      font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
-    .brand-badge { padding-left: 7px; border-left: 1px solid var(--border); color: var(--tertiary);
-      font-size: 10px; font-weight: 600; letter-spacing: .06em; }
-    .content { padding-top: 26px; border-top: 1px solid var(--border); }
-    .eyebrow { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; color: var(--secondary);
-      font-size: 12px; font-weight: 500; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
-    html[data-state='error'] .status-dot { background: var(--error); }
-    h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: 1.35; letter-spacing: -.02em; }
-    .message { margin: 10px 0 0; color: var(--secondary); font-size: 14px; line-height: 1.65; }
-    .footnote { margin: 30px 0 0; padding-top: 16px; border-top: 1px solid var(--border);
-      color: var(--tertiary); font-size: 11px; line-height: 1.5; }
+    .shell { width: min(560px, 100%); text-align: center; }
+    .brand { display: inline-flex; margin-bottom: 36px; color: var(--text); }
+    .brand-wordmark { display: block; width: 182px; height: auto; }
+    h1 { margin: 0; font-size: 26px; font-weight: 600; line-height: 1.3; letter-spacing: -.025em; }
+    html[data-state='error'] h1 { color: var(--error); }
+    .message { margin: 9px 0 0; color: var(--secondary); font-size: 14px; line-height: 1.6; }
     @media (max-width: 480px) {
-      body { padding: 16px; }
-      .brand { margin-bottom: 30px; }
+      body { padding: 24px 20px; }
+      .brand { margin-bottom: 32px; }
+      .brand-wordmark { width: 164px; }
+      h1 { font-size: 23px; }
     }
   </style>
 </head>
 <body>
   <main class="shell" aria-labelledby="callback-title">
-    <header class="brand" aria-label="DeepSeek Harness">
-      <span>deepseek</span>
-      <span class="brand-badge">HARNESS</span>
-    </header>
-    <section class="content">
-      <p class="eyebrow" role="status"><span class="status-dot" aria-hidden="true"></span>${status}</p>
-      <h1 id="callback-title">${heading}</h1>
-      <p class="message">${escapeHtml(message)}</p>
-      <p class="footnote">OpenAI OAuth · local one-time callback</p>
-    </section>
+    <div class="brand" role="img" aria-label="DeepSeek Harness">${BRAND_WORDMARK}</div>
+    <h1 id="callback-title">${heading}</h1>
+    <p class="message" role="${role}">${escapeHtml(message)}</p>
   </main>
 </body>
 </html>`
 }
 
 function successPage(): string {
-  return callbackPage('success', 'OpenAI sign-in has finished. You can close this window and return to DeepSeek Harness.')
+  return callbackPage('success', 'You can close this window and return to DeepSeek Harness.')
 }
 
 function errorPage(message: string): string {
