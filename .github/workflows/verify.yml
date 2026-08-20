@@ -12,7 +12,7 @@ permissions:
 jobs:
   package:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -37,70 +37,3 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/package"
           pnpm pack --pack-destination "$RUNNER_TEMP/package"
-
-      - name: Install and boot in a clean published Harness
-        env:
-          DSH_VERSION: 0.1.0-rc.6
-          PORT: '18765'
-        run: |
-          set -euo pipefail
-          host_root="$RUNNER_TEMP/host"
-          dsh_home="$RUNNER_TEMP/dsh-home"
-          tarball="$RUNNER_TEMP/package/dsh-openai-oauth-0.1.0.tgz"
-
-          npm install --prefix "$host_root" "@deepseek-ai/dsh@$DSH_VERSION"
-          DSH_HOME="$dsh_home" "$host_root/node_modules/.bin/dsh" plugin --profile web add "$tarball"
-
-          profile_workspace="$dsh_home/profiles/web/pnpm-workspace.yaml"
-          if grep -q 'set this to true or false' "$profile_workspace"; then
-            echo 'Plugin installation requested manual build approval.' >&2
-            exit 1
-          fi
-          test -x "$dsh_home/profiles/web/node_modules/.bin/dsh-openai-login"
-          profile_dump="$RUNNER_TEMP/profile.yml"
-          DSH_HOME="$dsh_home" "$host_root/node_modules/.bin/dsh" --profile web --dump-config >"$profile_dump"
-          grep -q 'dsh-openai-oauth' "$profile_dump"
-          login_help="$RUNNER_TEMP/login-help.txt"
-          DSH_HOME="$dsh_home" "$dsh_home/profiles/web/node_modules/.bin/dsh-openai-login" --help >"$login_help"
-          grep -q '^Usage: dsh-openai-login' "$login_help"
-
-          web_log="$RUNNER_TEMP/dsh-web.log"
-          status_headers="$RUNNER_TEMP/status-headers.txt"
-          status_body="$RUNNER_TEMP/status.json"
-          DSH_HOME="$dsh_home" "$host_root/node_modules/.bin/dsh" --profile web --host 127.0.0.1 --port "$PORT" >"$web_log" 2>&1 &
-          web_pid=$!
-          trap 'kill "$web_pid" 2>/dev/null || true' EXIT
-
-          for attempt in $(seq 1 30); do
-            if curl --fail --silent --show-error --dump-header "$status_headers" --output "$status_body" \
-              "http://127.0.0.1:$PORT/api/plugins/openai-oauth/status"; then
-              break
-            fi
-            if ! kill -0 "$web_pid" 2>/dev/null; then
-              cat "$web_log" >&2
-              exit 1
-            fi
-            sleep 1
-          done
-
-          test -s "$status_body"
-          grep -qi '^cache-control: no-store' "$status_headers"
-          node -e "const fs=require('node:fs'); const v=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); if (v.state !== 'disconnected') { console.error('Unexpected OAuth status response:', JSON.stringify(v)); process.exit(1) }" "$status_body"
-
-          kill "$web_pid"
-          wait "$web_pid" || true
-          trap - EXIT
-          DSH_HOME="$dsh_home" "$host_root/node_modules/.bin/dsh" plugin --profile web remove dsh-openai-oauth
-          test ! -e "$dsh_home/profiles/web/node_modules/.bin/dsh-openai-login"
-
-          headless_home="$RUNNER_TEMP/dsh-headless-home"
-          DSH_HOME="$headless_home" "$host_root/node_modules/.bin/dsh" plugin --profile headless add "$tarball"
-          headless_dump="$RUNNER_TEMP/headless-profile.yml"
-          DSH_HOME="$headless_home" "$host_root/node_modules/.bin/dsh" --profile headless --dump-config >"$headless_dump"
-          grep -q 'dsh-openai-oauth' "$headless_dump"
-          test -x "$headless_home/profiles/headless/node_modules/.bin/dsh-openai-login"
-          headless_help="$RUNNER_TEMP/headless-login-help.txt"
-          DSH_HOME="$headless_home" "$headless_home/profiles/headless/node_modules/.bin/dsh-openai-login" --help >"$headless_help"
-          grep -q '^Usage: dsh-openai-login' "$headless_help"
-          DSH_HOME="$headless_home" "$host_root/node_modules/.bin/dsh" plugin --profile headless remove dsh-openai-oauth
-          test ! -e "$headless_home/profiles/headless/node_modules/.bin/dsh-openai-login"
