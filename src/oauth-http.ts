@@ -3,6 +3,9 @@ import { isIP } from 'node:net'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
 import type { AuthStatus, LoginMethod, PendingStatus } from './auth-controller.js'
 import { AuthControllerError } from './auth-controller.js'
+import { resolveModelRows, validateModelDraft, validateModelId } from './catalog.js'
+import type { ModelRow, StoredModel } from './catalog.js'
+import { ModelStoreError } from './model-store.js'
 import { OAUTH_ROUTE_PATH } from './protocol.js'
 export { OAUTH_ROUTE_PATH } from './protocol.js'
 const MAX_BODY_BYTES = 4096
@@ -152,9 +155,66 @@ function attemptId(body: Record<string, unknown>): string {
   return body['attemptId']
 }
 
+/** Plugin-owned model overlay surface served beside the OAuth endpoints. */
+export interface ModelsHttpController {
+  list(): readonly StoredModel[]
+  save(draft: unknown): Promise<readonly StoredModel[]>
+  remove(id: unknown): Promise<readonly StoredModel[]>
+  readonly loadError: string | undefined
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Parse the exact POST /models/save body.
+ * @param body - decoded JSON request body.
+ * @returns the validated overlay entry.
+ */
+export function parseModelSaveBody(body: unknown): StoredModel {
+  if (!isRecord(body)) throw new HttpError(400, 'INVALID_BODY', 'Model save body must be a JSON object.')
+  if (!exactKeys(body, ['id', 'contextWindow', 'maxTokens'])
+    && !exactKeys(body, ['id', 'name', 'contextWindow', 'maxTokens'])) {
+    throw new HttpError(400, 'INVALID_BODY', 'Model save body must carry exactly id, contextWindow and maxTokens, plus an optional name.')
+  }
+  const validated = validateModelDraft(body)
+  if (!validated.ok) throw new HttpError(400, validated.code, validated.message)
+  return validated.value
+}
+
+/**
+ * Parse the exact POST /models/remove body.
+ * @param body - decoded JSON request body.
+ * @returns the validated model id.
+ */
+export function parseModelIdBody(body: unknown): string {
+  if (!isRecord(body) || !exactKeys(body, ['id'])) {
+    throw new HttpError(400, 'INVALID_BODY', 'Model remove body must carry exactly one id.')
+  }
+  const validated = validateModelId(body['id'])
+  if (!validated.ok) throw new HttpError(400, validated.code, validated.message)
+  return validated.value
+}
+
+function mappedModelError(error: ModelStoreError): HttpError {
+  if (error.code === 'UNKNOWN_MODEL') return new HttpError(404, error.code, error.message)
+  if (error.code === 'INVALID_MODEL_FILE' || error.code === 'UNSAFE_MODEL_PATH' || error.code === 'MODEL_WRITE_FAILED') {
+    return new HttpError(500, 'MODEL_WRITE_FAILED', error.message)
+  }
+  return new HttpError(400, error.code, error.message)
+}
+
+function modelView(controller: ModelsHttpController, stored: readonly StoredModel[]): { models: ModelRow[]; error?: string } {
+  const rows = resolveModelRows(stored)
+  const error = controller.loadError
+  return error === undefined ? { models: rows } : { models: rows, error }
+}
+
 /** Build the local-only OAuth route without registering it. */
 export function oauthRoute(
   controller: OAuthHttpController,
+  models?: ModelsHttpController,
 ): WebRoute {
   return {
     kind: 'prefix',
@@ -176,6 +236,25 @@ export function oauthRoute(
         return
       }
       try {
+        if (path.startsWith(`${OAUTH_ROUTE_PATH}/models`)) {
+          if (models === undefined) throw new HttpError(404, 'NOT_FOUND', 'OAuth endpoint not found.')
+          if (path === `${OAUTH_ROUTE_PATH}/models`) {
+            if (req.method !== 'GET') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'This model endpoint accepts only GET.')
+            writeJson(res, 200, modelView(models, models.list()))
+            return
+          }
+          if (path === `${OAUTH_ROUTE_PATH}/models/save`) {
+            if (req.method !== 'POST') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'This model endpoint accepts only POST.')
+            writeJson(res, 200, modelView(models, await models.save(parseModelSaveBody(await readJson(req)))))
+            return
+          }
+          if (path === `${OAUTH_ROUTE_PATH}/models/remove`) {
+            if (req.method !== 'POST') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'This model endpoint accepts only POST.')
+            writeJson(res, 200, modelView(models, await models.remove(parseModelIdBody(await readJson(req)))))
+            return
+          }
+          throw new HttpError(404, 'NOT_FOUND', 'OAuth endpoint not found.')
+        }
         if (path === `${OAUTH_ROUTE_PATH}/status`) {
           if (req.method !== 'GET') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'This OAuth endpoint accepts only GET.')
           writeJson(res, 200, await controller.status())
@@ -202,10 +281,13 @@ export function oauthRoute(
       } catch (error) {
         const mapped = error instanceof HttpError
           ? error
-          : error instanceof AuthControllerError
-            ? mappedControllerError(error)
-            : new HttpError(500, 'OAUTH_INTERNAL_ERROR', 'OpenAI OAuth operation failed.')
-        writeJson(res, mapped.status, errorBody(mapped), mapped.status === 405 ? { allow: path.endsWith('/status') ? 'GET' : 'POST' } : {})
+          : error instanceof ModelStoreError
+            ? mappedModelError(error)
+            : error instanceof AuthControllerError
+              ? mappedControllerError(error)
+              : new HttpError(500, 'OAUTH_INTERNAL_ERROR', 'OpenAI OAuth operation failed.')
+        const allowGet = path.endsWith('/status') || path.endsWith('/models')
+        writeJson(res, mapped.status, errorBody(mapped), mapped.status === 405 ? { allow: allowGet ? 'GET' : 'POST' } : {})
       }
     },
   }

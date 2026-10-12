@@ -8,6 +8,7 @@ import { OpenAiCodexAdapter } from './adapter.js'
 import { AuthController } from './auth-controller.js'
 import { CodexModels } from './codex-models.js'
 import { OPENAI_CODEX_PROVIDER, SecureCredentialStore } from './credential-store.js'
+import { CustomModelStore } from './model-store.js'
 import { createOpenAiOAuth } from './openai-oauth.js'
 import { oauthRoute } from './oauth-http.js'
 import type { AuthInteraction, OAuthCredential } from './oauth-types.js'
@@ -16,7 +17,10 @@ export { OpenAiCodexAdapter } from './adapter.js'
 export type { OpenAiCodexAdapterOptions, OpenAiCodexModels } from './adapter.js'
 export { AuthController, AuthControllerError } from './auth-controller.js'
 export type { AuthStatus, LoginMethod, PendingStatus } from './auth-controller.js'
+export { resolveCatalog, resolveModelRows, validateModelDraft } from './catalog.js'
+export type { ModelRow, StoredModel } from './catalog.js'
 export { CredentialStoreError, OPENAI_CODEX_PROVIDER, SecureCredentialStore } from './credential-store.js'
+export { CustomModelStore, ModelStoreError } from './model-store.js'
 export { createOpenAiOAuth } from './openai-oauth.js'
 export { OAUTH_ROUTE_PATH } from './oauth-http.js'
 
@@ -27,6 +31,7 @@ export const inject = ['llm']
 
 export interface PluginRuntime {
   credentials: SecureCredentialStore
+  store: CustomModelStore
   models: CodexModels
   controller: AuthController
   adapter: OpenAiCodexAdapter
@@ -41,15 +46,20 @@ export interface CreatePluginRuntimeOptions {
 
 /** Construct the shared credential, OAuth, model, and adapter runtime. */
 export function createPluginRuntime(options: CreatePluginRuntimeOptions = {}): PluginRuntime {
-  const credentials = new SecureCredentialStore(resolveDshHome(options.dshHome))
+  const dshHome = resolveDshHome(options.dshHome)
+  const credentials = new SecureCredentialStore(dshHome)
+  const store = new CustomModelStore(dshHome)
   const oauth = createOpenAiOAuth()
-  const models = new CodexModels(credentials, { refresh: (credential, signal) => oauth.refresh(credential, signal) })
+  const models = new CodexModels(credentials, {
+    refresh: (credential, signal) => oauth.refresh(credential, signal),
+    store,
+  })
   const login = options.login ?? (interaction => oauth.login(interaction))
   const controller = new AuthController(credentials, { login })
   const adapter = new OpenAiCodexAdapter(models, {
     ...options.attachments === undefined ? {} : { attachments: options.attachments },
   })
-  return { credentials, models, controller, adapter }
+  return { credentials, store, models, controller, adapter }
 }
 
 /** Refuse the unsupported remotely reachable Web posture at plugin load. */
@@ -63,14 +73,22 @@ export function assertLocalWebHost(host: WebServer['host']): void {
 export function apply(ctx: Context): void {
   const runtime = createPluginRuntime({ attachments: () => ctx.get('attachments') })
   ctx.effect(() => {
-    const disposeAdapter = ctx.llm.registerAdapter([OPENAI_CODEX_PROVIDER], runtime.adapter)
+    const registration = ctx.llm.registerAdapter([OPENAI_CODEX_PROVIDER], runtime.adapter)
+    const stopWatching = runtime.store.onChange(() => {
+      try {
+        registration.replace([OPENAI_CODEX_PROVIDER])
+      } catch {
+        // A catalog refresh is best-effort; the stored model is already committed.
+      }
+    })
     return async () => {
-      disposeAdapter()
+      stopWatching()
+      registration()
       await runtime.controller.dispose()
     }
   }, 'dsh-openai-oauth: adapter and controller')
   ctx.inject(['webServer'], (routeCtx) => {
     assertLocalWebHost(routeCtx.webServer.host)
-    return routeCtx.webServer.register(oauthRoute(runtime.controller))
+    return routeCtx.webServer.register(oauthRoute(runtime.controller, runtime.store))
   })
 }

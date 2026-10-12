@@ -107,6 +107,7 @@ interface ModelsSimpleStreamOptions {
   temperature?: number;
   sessionId?: string;
   signal?: AbortSignal;
+  maxTokens?: number;
   maxRetries?: number;
   transformHeaders?: (headers: Readonly<Record<string, string | null>>) => Record<string, string | null>;
 }
@@ -345,11 +346,66 @@ declare class AuthController {
   dispose(): Promise<void>;
 }
 //#endregion
+//#region src/catalog.d.ts
+/** One overlay entry exactly as persisted in models.json. */
+interface StoredModel {
+  id: string;
+  contextWindow: number;
+  maxTokens: number;
+  name?: string;
+}
+/** Stable refusal code for one overlay draft. */
+type ModelValidationCode = 'INVALID_MODEL_ID' | 'INVALID_CONTEXT_WINDOW' | 'INVALID_MAX_TOKENS' | 'INVALID_MODEL_NAME' | 'MODEL_LIMIT_REACHED';
+/** Discriminated validation outcome carrying a redacted code and message. */
+type ModelValidation = {
+  ok: true;
+  value: StoredModel;
+} | {
+  ok: false;
+  code: ModelValidationCode;
+  message: string;
+};
+/** One row of the catalog view served on the plugin route. */
+interface ModelRow {
+  id: string;
+  name: string;
+  contextWindow: number;
+  maxTokens: number;
+  builtIn: boolean;
+  overridden: boolean;
+  defaultContextWindow: number | null;
+  defaultMaxTokens: number | null;
+}
+/**
+ * Validate one overlay draft against the stored snapshot.
+ * @param raw - untrusted draft carrying id, contextWindow, maxTokens and an optional name.
+ * @param stored - entries already persisted, used for the custom model capacity rule.
+ * @returns the normalized entry, or the refusal code and message.
+ */
+declare function validateModelDraft(raw: unknown, stored?: readonly StoredModel[]): ModelValidation;
+/**
+ * Resolve the effective catalog: shipped models in catalog order with any stored
+ * override applied, then stored custom models in file order.
+ * @param stored - persisted overlay entries.
+ * @returns the provider-owned model catalog, pure and synchronous.
+ */
+declare function resolveCatalog(stored: readonly StoredModel[]): Model<'openai-codex-responses'>[];
+/**
+ * Build the settings-facing view of the effective catalog.
+ * @param stored - persisted overlay entries.
+ * @returns one row per built-in then per custom model, with pristine built-in defaults.
+ */
+declare function resolveModelRows(stored: readonly StoredModel[]): ModelRow[];
+//#endregion
 //#region src/codex-models.d.ts
 type CodexFetch = (input: string | URL, init?: RequestInit) => Promise<Response>;
 interface CodexModelsOptions {
   fetch?: CodexFetch;
   now?: () => number;
+  /** Optional persisted overlay applied on top of the shipped catalog. */
+  store?: {
+    list(): readonly StoredModel[];
+  };
   refresh: (credential: OAuthCredential, signal?: AbortSignal) => Promise<OAuthCredential>;
 }
 /** Credential-aware model collection and direct Codex Responses transport. */
@@ -363,10 +419,11 @@ declare class CodexModels {
    * @param options - direct HTTP and refresh operations.
    */
   constructor(credentials: CredentialStore, options: CodexModelsOptions);
-  /** Return models from the plugin's versioned catalog. */
+  /** Return the effective catalog: shipped models with the stored overlay applied. */
   getModels(provider?: string): readonly Model[];
-  /** Resolve one exact model owned by the provider route. */
+  /** Resolve one exact effective model owned by the provider route. */
   getModel(provider: string, id: string): Model | undefined;
+  private catalog;
   private credential;
   /** Stream one request through the ChatGPT Codex Responses endpoint. */
   streamSimple(model: Model, context: CodexContext, options?: ModelsSimpleStreamOptions): AsyncGenerator<AssistantMessageEvent>;
@@ -410,6 +467,70 @@ declare class SecureCredentialStore implements CredentialStore {
   delete(providerId: string): Promise<void>;
 }
 //#endregion
+//#region src/model-store.d.ts
+/** Every code this store reports. */
+type ModelStoreErrorCode = ModelValidationCode | 'UNKNOWN_MODEL' | 'INVALID_MODEL_FILE' | 'UNSAFE_MODEL_PATH' | 'MODEL_WRITE_FAILED';
+/** Stable model overlay failure with no file contents in its message. */
+declare class ModelStoreError extends Error {
+  readonly code: ModelStoreErrorCode;
+  /**
+   * @param code - stable diagnostic code safe to expose after route mapping.
+   * @param message - fixed, redacted diagnostic text.
+   */
+  constructor(code: ModelStoreErrorCode, message: string);
+}
+/** One observer of a committed overlay snapshot. */
+type ModelChangeListener = (models: readonly StoredModel[]) => void;
+/**
+ * Owner-only, versioned model overlay rooted below one Harness home. The
+ * constructor reads the file synchronously so the model collection stays
+ * synchronous; every mutation is lock-serialized and replaces the file
+ * atomically. A malformed or unsafe file never throws at load: it is reported
+ * as loadError and the next successful save overwrites it.
+ */
+declare class CustomModelStore {
+  private readonly dshHome;
+  /** Plugin-owned state directory shared with the credential store. */
+  readonly stateDirectory: string;
+  /** Versioned model overlay path. */
+  readonly modelFile: string;
+  private models;
+  private loadErrorCode;
+  private readonly listeners;
+  /**
+   * @param dshHome - resolved Harness home directory.
+   */
+  constructor(dshHome: string);
+  /** The code of the last failed load, cleared by the next successful save. */
+  get loadError(): string | undefined;
+  /** Stored entries in overlay order. */
+  list(): readonly StoredModel[];
+  /** Observe every committed snapshot; the returned disposer unsubscribes. */
+  onChange(listener: ModelChangeListener): () => void;
+  /**
+   * Store one overlay entry: an override when the id is shipped, else a custom model.
+   * @param draft - untrusted entry carrying id, contextWindow, maxTokens and an optional name.
+   * @returns the committed snapshot.
+   */
+  save(draft: unknown): Promise<readonly StoredModel[]>;
+  /**
+   * Delete the stored entry for one id: a custom model, or a built-in override.
+   * @param id - untrusted model id.
+   * @returns the committed snapshot.
+   */
+  remove(id: unknown): Promise<readonly StoredModel[]>;
+  /** Read the on-disk overlay, falling back to memory so a damaged file recovers on save. */
+  private current;
+  private readStored;
+  private assertDirectory;
+  private ensureStateDirectory;
+  private withLock;
+  /** Replace the file atomically, then publish the snapshot in memory. */
+  private commit;
+  private writeEnvelope;
+  private emit;
+}
+//#endregion
 //#region src/openai-oauth.d.ts
 type OAuthFetch = (input: string | URL, init?: RequestInit) => Promise<Response>;
 interface OpenAiOAuth {
@@ -439,6 +560,7 @@ declare const name = "llm-openai-oauth";
 declare const inject: string[];
 interface PluginRuntime {
   credentials: SecureCredentialStore;
+  store: CustomModelStore;
   models: CodexModels;
   controller: AuthController;
   adapter: OpenAiCodexAdapter;
@@ -456,4 +578,4 @@ declare function assertLocalWebHost(host: WebServer['host']): void;
 /** Register the direct adapter and activate the local route whenever a Web Host is present. */
 declare function apply(ctx: Context): void;
 //#endregion
-export { AuthController, AuthControllerError, type AuthStatus, CreatePluginRuntimeOptions, CredentialStoreError, type LoginMethod, OAUTH_ROUTE_PATH, OPENAI_CODEX_PROVIDER, OpenAiCodexAdapter, type OpenAiCodexAdapterOptions, type OpenAiCodexModels, type PendingStatus, PluginRuntime, SecureCredentialStore, apply, assertLocalWebHost, createOpenAiOAuth, createPluginRuntime, inject, name };
+export { AuthController, AuthControllerError, type AuthStatus, CreatePluginRuntimeOptions, CredentialStoreError, CustomModelStore, type LoginMethod, type ModelRow, ModelStoreError, OAUTH_ROUTE_PATH, OPENAI_CODEX_PROVIDER, OpenAiCodexAdapter, type OpenAiCodexAdapterOptions, type OpenAiCodexModels, type PendingStatus, PluginRuntime, SecureCredentialStore, type StoredModel, apply, assertLocalWebHost, createOpenAiOAuth, createPluginRuntime, inject, name, resolveCatalog, resolveModelRows, validateModelDraft };

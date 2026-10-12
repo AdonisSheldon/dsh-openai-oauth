@@ -7,14 +7,6 @@ dist/
 *.tsbuildinfo
 pnpm-debug.log*
 
-# Test sources and runner configuration
-tests/
-test/
-__tests__/
-**/*.spec.*
-**/*.test.*
-vitest.config.*
-
 # Generated and duplicate build files
 lib/*.map
 lib/* [0-9]*.*
@@ -32,6 +24,7 @@ lib/* [0-9]*.*
 Thumbs.db
 .idea/
 .vscode/
+.dsh-edit-review*.json
 .cache/
 tmp/
 temp/

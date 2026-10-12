@@ -120,6 +120,7 @@ export class OpenAiCodexAdapter extends LlmAdapter {
       return {
         ...modelInfo(model),
         context: { contextWindow: model.contextWindow },
+        defaultMaxTokens: model.maxTokens,
         ...levels.length === 0 ? {} : {
           reasoning: {
             efforts: levels.map(level => ({ id: ReasoningEffortId(level), name: reasoningName(level) })),
@@ -133,9 +134,6 @@ export class OpenAiCodexAdapter extends LlmAdapter {
     assertProvider(options.provider)
     if (options.stop !== undefined) {
       throw new LlmError('OpenAI Codex does not support Harness stop sequences.', 'UNSUPPORTED_OPTION')
-    }
-    if (options.maxTokens !== undefined) {
-      throw new LlmError('OpenAI Codex does not expose a per-request maxTokens option.', 'UNSUPPORTED_OPTION')
     }
     const model = this.models.getModel(options.provider, options.model)
     if (model === undefined) throw new LlmError(`OpenAI Codex has no model "${options.model}"`, 'UNKNOWN_MODEL')
@@ -157,6 +155,7 @@ export class OpenAiCodexAdapter extends LlmAdapter {
       const events = this.models.streamSimple(model, context, {
         ...reasoning === undefined ? {} : { reasoning },
         ...options.temperature === undefined ? {} : { temperature: options.temperature },
+        ...options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens },
         ...options.sessionId === undefined ? {} : { sessionId: String(options.sessionId) },
         signal,
         maxRetries: 0,

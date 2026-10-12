@@ -104,6 +104,7 @@ export interface ModelsSimpleStreamOptions {
   temperature?: number
   sessionId?: string
   signal?: AbortSignal
+  maxTokens?: number
   maxRetries?: number
   transformHeaders?: (headers: Readonly<Record<string, string | null>>) => Record<string, string | null>
 }
@@ -129,7 +130,7 @@ export function getSupportedThinkingLevels(model: Model): ThinkingLevel[] {
     && model.thinkingLevelMap?.[level] !== undefined)
 }
 
-const BASE_MODEL = {
+export const BASE_MODEL = {
   api: 'openai-codex-responses' as const,
   provider: 'openai-codex',
   baseUrl: 'https://chatgpt.com/backend-api',
@@ -137,6 +138,11 @@ const BASE_MODEL = {
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
   maxTokens: 128_000,
 }
+
+/** Reasoning level map shared by the base catalog entries. */
+export const STANDARD_THINKING_LEVEL_MAP = {
+  minimal: 'low', low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh',
+} as const
 
 /** Versioned model catalog shipped with this plugin release. */
 export const OPENAI_CODEX_MODELS: readonly Model<'openai-codex-responses'>[] = [
@@ -167,6 +173,14 @@ export const OPENAI_CODEX_MODELS: readonly Model<'openai-codex-responses'>[] = [
   },
   {
     ...BASE_MODEL, id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra', input: ['text', 'image'], contextWindow: 272_000,
+    thinkingLevelMap: { minimal: 'low', low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh', max: 'max' },
+  },
+  {
+    ...BASE_MODEL, id: 'gpt-6-astra', name: 'GPT-6 Astra', input: ['text', 'image'], contextWindow: 1_050_000,
+    thinkingLevelMap: { minimal: 'low', low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh', max: 'max' },
+  },
+  {
+    ...BASE_MODEL, id: 'gpt-6.1-sol', name: 'GPT-6.1 Sol', input: ['text', 'image'], contextWindow: 1_050_000,
     thinkingLevelMap: { minimal: 'low', low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh', max: 'max' },
   },
 ]

@@ -1,5 +1,5 @@
 /** Harness-to-Codex request conversion. */
-import { CallId, LlmError } from '@deepseek-ai/dsh-llm'
+import { LlmError } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock, GenerateOptions } from '@deepseek-ai/dsh-llm'
 import type { AttachmentStore } from '@deepseek-ai/dsh-attachment'
 import type {
@@ -38,15 +38,6 @@ async function userContent(
         })
         break
       }
-      case 'tool-result': {
-        const nested = await userContent(block.content, attachments, signal)
-        if (typeof nested === 'string') {
-          if (nested.length > 0) content.push({ type: 'text', text: nested })
-        } else {
-          content.push(...nested)
-        }
-        break
-      }
       default: unsupported(block.type, 'user')
     }
   }
@@ -68,7 +59,7 @@ export async function toCodexContext(
   options: GenerateOptions,
   attachments?: AttachmentStore,
 ): Promise<CodexContext> {
-  const toolNames = new Map<CallId, string>()
+  const toolNames = new Map<string, string>()
   const messages: CodexMessage[] = []
   for (const message of options.messages) {
     if (message.role === 'system') {
@@ -83,30 +74,29 @@ export async function toCodexContext(
     if (message.role === 'assistant') {
       const assistant = toCodexAssistant(message)
       for (const block of assistant.content) {
-        if (block.type === 'toolCall') toolNames.set(CallId(block.id), block.name)
+        if (block.type === 'toolCall') toolNames.set(block.id, block.name)
       }
       messages.push(assistant)
       continue
     }
-    const regular = message.content.filter(block => block.type !== 'tool-result')
-    const content = await userContent(regular, attachments, options.signal)
-    const results = message.content.filter(block => block.type === 'tool-result')
-    if ((typeof content === 'string' ? content.length > 0 : content.length > 0) || results.length === 0) {
-      messages.push({ role: 'user', content, timestamp: 0 })
-    }
-    for (const result of results) {
-      const resultContent = await userContent(result.content, attachments, options.signal)
+    if (message.role === 'tool') {
+      // Do not flatten tool outputs into user text: Responses requires a
+      // function_call_output matching each historical function_call.
+      const resultContent = await userContent(message.content, attachments, options.signal)
       messages.push({
         role: 'toolResult',
-        toolCallId: result.toolCallId,
-        toolName: toolNames.get(result.toolCallId) ?? 'unknown',
+        toolCallId: message.toolCallId,
+        toolName: toolNames.get(message.toolCallId) ?? 'unknown',
         content: typeof resultContent === 'string'
           ? [{ type: 'text', text: resultContent || '(no output)' }]
           : resultContent,
-        isError: result.isError ?? false,
+        isError: message.isError ?? false,
         timestamp: 0,
       })
+      continue
     }
+    const content = await userContent(message.content, attachments, options.signal)
+    messages.push({ role: 'user', content, timestamp: 0 })
   }
   const tools = toolsOf(options)
   return {

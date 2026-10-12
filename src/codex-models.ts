@@ -1,6 +1,7 @@
 import { LlmError } from '@deepseek-ai/dsh-llm'
+import { resolveCatalog } from './catalog.js'
+import type { StoredModel } from './catalog.js'
 import { OPENAI_CODEX_PROVIDER } from './credential-store.js'
-import { OPENAI_CODEX_MODELS } from './models.js'
 import type {
   AssistantMessage,
   AssistantMessageEvent,
@@ -23,6 +24,8 @@ type CodexFetch = (input: string | URL, init?: RequestInit) => Promise<Response>
 export interface CodexModelsOptions {
   fetch?: CodexFetch
   now?: () => number
+  /** Optional persisted overlay applied on top of the shipped catalog. */
+  store?: { list(): readonly StoredModel[] }
   refresh: (credential: OAuthCredential, signal?: AbortSignal) => Promise<OAuthCredential>
 }
 
@@ -145,6 +148,7 @@ function requestBody(model: Model, context: CodexContext, options: ModelsSimpleS
   }
   if (options.sessionId !== undefined) body['prompt_cache_key'] = options.sessionId
   if (options.temperature !== undefined) body['temperature'] = options.temperature
+  if (options.maxTokens !== undefined) body['max_output_tokens'] = options.maxTokens
   if (context.tools !== undefined && context.tools.length > 0) {
     body['tools'] = context.tools.map(tool => ({
       type: 'function', name: tool.name, description: tool.description,
@@ -187,7 +191,10 @@ function httpFailure(status: number): LlmError {
   }
   if (status === 429) return new LlmError('OpenAI Codex rate limit reached. Retry later.', 'RATE_LIMIT')
   if (status === 408 || status === 504) return new LlmError('OpenAI Codex request timed out.', 'TIMEOUT')
-  return new LlmError('OpenAI Codex request failed.', 'CODEX_ERROR')
+  if (status >= 500 && status < 600) return new LlmError(`OpenAI Codex server error (HTTP ${status}).`, 'SERVER')
+  if (status === 400 || status === 422) return new LlmError(`OpenAI Codex rejected the request (HTTP ${status}).`, 'CODEX_ERROR')
+  if (status === 404) return new LlmError(`OpenAI Codex endpoint not found (HTTP ${status}).`, 'CODEX_ERROR')
+  return new LlmError(`OpenAI Codex request failed (HTTP ${status}).`, 'CODEX_ERROR')
 }
 
 async function* sse(response: Response, signal?: AbortSignal): AsyncGenerator<Record<string, unknown>> {
@@ -268,14 +275,18 @@ export class CodexModels {
     this.now = options.now ?? Date.now
   }
 
-  /** Return models from the plugin's versioned catalog. */
+  /** Return the effective catalog: shipped models with the stored overlay applied. */
   getModels(provider?: string): readonly Model[] {
-    return provider === undefined || provider === OPENAI_CODEX_PROVIDER ? OPENAI_CODEX_MODELS : []
+    return provider === undefined || provider === OPENAI_CODEX_PROVIDER ? this.catalog() : []
   }
 
-  /** Resolve one exact model owned by the provider route. */
+  /** Resolve one exact effective model owned by the provider route. */
   getModel(provider: string, id: string): Model | undefined {
-    return provider === OPENAI_CODEX_PROVIDER ? OPENAI_CODEX_MODELS.find(model => model.id === id) : undefined
+    return provider === OPENAI_CODEX_PROVIDER ? this.catalog().find(model => model.id === id) : undefined
+  }
+
+  private catalog(): readonly Model[] {
+    return resolveCatalog(this.options.store?.list() ?? [])
   }
 
   private async credential(signal?: AbortSignal): Promise<OAuthCredential> {
