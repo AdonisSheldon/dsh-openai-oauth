@@ -15,7 +15,7 @@
 - 支持浏览器 PKCE 登录和设备代码登录
 - 提供 Web 设置页和 headless 登录命令
 - 自动刷新登录凭据
-- 在 DSH 原生模型选择器中使用 Codex 模型
+- 登录后动态获取 Codex 模型目录及推理等级，并显示在 DSH 原生模型选择器中
 - 凭据保存在本机 Harness 主目录
 
 ## 准备 DSH
@@ -25,7 +25,7 @@
 - `pnpm` 已加入 `PATH`
 - 当前具有 Codex 使用资格的 ChatGPT 账号
 
-`0.2.0` 支持 macOS 和 Linux，暂不支持 Windows。
+`0.2.1` 支持 macOS 和 Linux，暂不支持 Windows。
 
 从插件 `0.1.x` 升级时，先升级 DSH，再重新安装插件并重启 DSH。已保存的 OAuth 凭据继续使用原来的位置。
 
@@ -44,7 +44,7 @@
 包发布后执行：
 
 ```sh
-dsh plugin --profile web add dsh-openai-oauth@0.2.0
+dsh plugin --profile web add dsh-openai-oauth@0.2.1
 dsh --profile web --dump-config
 ```
 
@@ -54,7 +54,7 @@ dsh --profile web --dump-config
 pnpm install --frozen-lockfile
 pnpm run check
 pnpm pack
-dsh plugin --profile web add ./dsh-openai-oauth-0.2.0.tgz
+dsh plugin --profile web add ./dsh-openai-oauth-0.2.1.tgz
 dsh --profile web --dump-config
 ```
 
@@ -72,7 +72,7 @@ dsh --profile web --dump-config
 在 headless profile 中使用：
 
 ```sh
-dsh plugin --profile headless add ./dsh-openai-oauth-0.2.0.tgz
+dsh plugin --profile headless add ./dsh-openai-oauth-0.2.1.tgz
 dsh plugin --profile headless exec dsh-openai-login
 ```
 

@@ -29,8 +29,8 @@ import { redactedCodexError, toStreamChunks } from './stream.js'
 
 /** Minimum model collection used by the route-specific adapter. */
 export interface OpenAiCodexModels {
-  getModels(provider?: string): readonly Model<Api>[]
-  getModel(provider: string, id: string): Model<Api> | undefined
+  getModels(provider?: string): readonly Model<Api>[] | Promise<readonly Model<Api>[]>
+  getModel(provider: string, id: string): Model<Api> | undefined | Promise<Model<Api> | undefined>
   streamSimple(
     model: Model<Api>,
     context: CodexContext,
@@ -104,22 +104,20 @@ export class OpenAiCodexAdapter extends LlmAdapter {
     return { id: provider, name: 'OpenAI Codex (ChatGPT OAuth)' }
   }
 
-  override listModels(provider: string): Promise<readonly LlmModelInfo[]> {
-    return Promise.resolve().then(() => {
-      assertProvider(provider)
-      return this.models.getModels(provider).map(modelInfo)
-    })
+  override async listModels(provider: string): Promise<readonly LlmModelInfo[]> {
+    assertProvider(provider)
+    return (await this.models.getModels(provider)).map(modelInfo)
   }
 
   override resolveModel(provider: string, id: string): Promise<LlmResolvedModelInfo> {
-    return Promise.resolve().then(() => {
+    return Promise.resolve().then(async () => {
       assertProvider(provider)
-      const model = this.models.getModel(provider, id)
+      const model = await this.models.getModel(provider, id)
       if (model === undefined) throw new LlmError(`OpenAI Codex has no model "${id}"`, 'UNKNOWN_MODEL')
       const levels = reasoningLevels(model)
       return {
         ...modelInfo(model),
-        context: { contextWindow: model.contextWindow },
+        ...model.contextWindow === undefined ? {} : { context: { contextWindow: model.contextWindow } },
         ...levels.length === 0 ? {} : {
           reasoning: {
             efforts: levels.map(level => ({ id: ReasoningEffortId(level), name: reasoningName(level) })),
@@ -137,7 +135,7 @@ export class OpenAiCodexAdapter extends LlmAdapter {
     if (options.maxTokens !== undefined) {
       throw new LlmError('OpenAI Codex does not expose a per-request maxTokens option.', 'UNSUPPORTED_OPTION')
     }
-    const model = this.models.getModel(options.provider, options.model)
+    const model = await this.models.getModel(options.provider, options.model)
     if (model === undefined) throw new LlmError(`OpenAI Codex has no model "${options.model}"`, 'UNKNOWN_MODEL')
     const reasoning = resolveReasoning(model, options.reasoningEffort)
     const containsImage = options.messages.some(message => contentHasImage(message.content))

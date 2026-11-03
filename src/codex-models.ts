@@ -1,6 +1,6 @@
-import { LlmError } from '@deepseek-ai/dsh-llm'
+import { attributionHeaders, LlmError } from '@deepseek-ai/dsh-llm'
 import { OPENAI_CODEX_PROVIDER } from './credential-store.js'
-import { OPENAI_CODEX_MODELS } from './models.js'
+import { CODEX_BASE_URL, CODEX_CATALOG_CLIENT_VERSION, parseModelCatalog } from './model-catalog.js'
 import type {
   AssistantMessage,
   AssistantMessageEvent,
@@ -163,7 +163,7 @@ function requestHeaders(credential: OAuthCredential, options: ModelsSimpleStream
     authorization: `Bearer ${credential.access}`,
     'chatgpt-account-id': credential.accountId,
     originator: 'deepseek-harness',
-    'user-agent': 'dsh-openai-oauth/0.1.0',
+    'user-agent': 'dsh-openai-oauth/0.2.1',
     'openai-beta': 'responses=experimental',
     accept: 'text/event-stream',
     'content-type': 'application/json',
@@ -255,6 +255,8 @@ type Slot = { kind: 'thinking' | 'text' | 'toolCall'; contentIndex: number; argu
 export class CodexModels {
   private readonly fetch: CodexFetch
   private readonly now: () => number
+  private catalog: { identity: string; models: readonly Model[] } | undefined
+  private pending: { identity: string; promise: Promise<readonly Model[]> } | undefined
 
   /**
    * @param credentials - plugin-owned credential persistence.
@@ -268,14 +270,61 @@ export class CodexModels {
     this.now = options.now ?? Date.now
   }
 
-  /** Return models from the plugin's versioned catalog. */
-  getModels(provider?: string): readonly Model[] {
-    return provider === undefined || provider === OPENAI_CODEX_PROVIDER ? OPENAI_CODEX_MODELS : []
+  /** Refresh the account's visible catalog; concurrent requests share one fetch. Signed-out callers get no models. */
+  async getModels(provider?: string): Promise<readonly Model[]> {
+    if (provider !== undefined && provider !== OPENAI_CODEX_PROVIDER) return []
+    if (await this.credentials.read(OPENAI_CODEX_PROVIDER) === undefined) {
+      this.catalog = undefined
+      return []
+    }
+    const credential = await this.credential()
+    const identity = JSON.stringify([credential.accountId, credential.access])
+    if (this.pending?.identity === identity) return (await this.pending.promise).filter(model => !model.hidden)
+    const promise = this.fetchCatalog(credential).then(async models => {
+      const latest = await this.credentials.read(OPENAI_CODEX_PROVIDER)
+      if (latest === undefined || latest.accountId !== credential.accountId || latest.access !== credential.access) return []
+      this.catalog = { identity, models }
+      return models
+    })
+    const pending = { identity, promise }
+    this.pending = pending
+    try {
+      return (await promise).filter(model => !model.hidden)
+    } finally {
+      if (this.pending === pending) this.pending = undefined
+    }
   }
 
-  /** Resolve one exact model owned by the provider route. */
-  getModel(provider: string, id: string): Model | undefined {
-    return provider === OPENAI_CODEX_PROVIDER ? OPENAI_CODEX_MODELS.find(model => model.id === id) : undefined
+  /** Resolve metadata from the current account's most recent catalog, fetching it on first use. */
+  async getModel(provider: string, id: string): Promise<Model | undefined> {
+    if (provider !== OPENAI_CODEX_PROVIDER) return undefined
+    const credential = await this.credentials.read(OPENAI_CODEX_PROVIDER)
+    const identity = credential === undefined ? undefined : JSON.stringify([credential.accountId, credential.access])
+    if (identity === undefined || this.catalog?.identity !== identity) await this.getModels(provider)
+    const latest = await this.credentials.read(OPENAI_CODEX_PROVIDER)
+    const latestIdentity = latest === undefined ? undefined : JSON.stringify([latest.accountId, latest.access])
+    return latestIdentity === undefined || this.catalog?.identity !== latestIdentity
+      ? undefined : this.catalog.models.find(model => model.id === id)
+  }
+
+  private async fetchCatalog(credential: OAuthCredential): Promise<readonly Model[]> {
+    const headers = requestHeaders(credential, { transformHeaders: () => attributionHeaders() })
+    headers.set('accept', 'application/json')
+    const signal = AbortSignal.timeout(10_000)
+    try {
+      const response = await this.fetch(`${CODEX_BASE_URL}/codex/models?client_version=${CODEX_CATALOG_CLIENT_VERSION}`, {
+        method: 'GET', headers, redirect: 'error', signal,
+      })
+      if (!response.ok) throw httpFailure(response.status)
+      return parseModelCatalog(await response.json())
+    } catch (error) {
+      if (error instanceof LlmError) throw error
+      if (error instanceof SyntaxError) {
+        throw new LlmError('OpenAI Codex returned an invalid model catalog.', 'PROTOCOL_ERROR')
+      }
+      throw new LlmError('OpenAI Codex model discovery failed. Check the connection and refresh the model list.',
+        signal.aborted ? 'TIMEOUT' : 'TRANSPORT')
+    }
   }
 
   private async credential(signal?: AbortSignal): Promise<OAuthCredential> {
