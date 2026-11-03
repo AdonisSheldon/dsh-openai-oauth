@@ -1,6 +1,9 @@
 import { attributionHeaders, LlmError } from '@deepseek-ai/dsh-llm'
 import { OPENAI_CODEX_PROVIDER } from './credential-store.js'
 import { CODEX_BASE_URL, CODEX_CATALOG_CLIENT_VERSION, parseModelCatalog } from './model-catalog.js'
+import { nativeSearchBody, nativeSearchResult } from './native-search.js'
+import type { NativeSearchOptions } from './native-search.js'
+import type { WebSearchRequest, WebSearchResult } from '@deepseek-ai/dsh-web'
 import type {
   AssistantMessage,
   AssistantMessageEvent,
@@ -163,7 +166,7 @@ function requestHeaders(credential: OAuthCredential, options: ModelsSimpleStream
     authorization: `Bearer ${credential.access}`,
     'chatgpt-account-id': credential.accountId,
     originator: 'deepseek-harness',
-    'user-agent': 'dsh-openai-oauth/0.2.1',
+    'user-agent': 'dsh-openai-oauth/0.3.0',
     'openai-beta': 'responses=experimental',
     accept: 'text/event-stream',
     'content-type': 'application/json',
@@ -349,6 +352,55 @@ export class CodexModels {
       throw new LlmError('OpenAI Codex is not signed in. Sign in with Browser or Device Code.', 'MISSING_CREDENTIAL')
     }
     return refreshed
+  }
+
+  /** Execute native server-side web search with the same credential refresh as chat inference. */
+  async searchNative(
+    request: WebSearchRequest, options: NativeSearchOptions, callerSignal?: AbortSignal,
+  ): Promise<WebSearchResult> {
+    const timeout = AbortSignal.timeout(options.timeoutMs)
+    const signal = callerSignal === undefined ? timeout : AbortSignal.any([callerSignal, timeout])
+    try {
+      signal.throwIfAborted()
+      const credential = await this.credential(signal)
+      signal.throwIfAborted()
+      const response = await this.fetch(`${CODEX_BASE_URL}${RESPONSES_PATH}`, {
+        method: 'POST', redirect: 'error', signal,
+        headers: requestHeaders(credential, { transformHeaders: () => attributionHeaders() }),
+        body: JSON.stringify(nativeSearchBody(request.query, options.model)),
+      })
+      if (!response.ok) throw httpFailure(response.status)
+      const completedItems = new Map<number, unknown>()
+      for await (const event of sse(response, signal)) {
+        signal.throwIfAborted()
+        if (event['type'] === 'response.output_item.done' && typeof event['output_index'] === 'number') {
+          completedItems.set(event['output_index'], event['item'])
+        }
+        if (event['type'] === 'response.completed') {
+          const terminal = event['response']
+          if (!isRecord(terminal)) return nativeSearchResult(terminal, request.maxResults)
+          // Codex can omit native tool items from the terminal output array.
+          if (Array.isArray(terminal['output'])) {
+            for (const [index, item] of terminal['output'].entries()) {
+              if (!completedItems.has(index)) completedItems.set(index, item)
+            }
+          }
+          return nativeSearchResult({ ...terminal,
+            output: [...completedItems.entries()].sort(([a], [b]) => a - b).map(([, item]) => item),
+          }, request.maxResults)
+        }
+        if (['response.failed', 'response.incomplete', 'response.error', 'error'].includes(String(event['type']))) {
+          throw new LlmError('OpenAI Codex search did not complete. Retry the search.', 'CODEX_SEARCH_FAILED')
+        }
+      }
+      signal.throwIfAborted()
+      throw new LlmError('OpenAI Codex search ended before completion. Retry the search.', 'TRANSPORT')
+    } catch (error) {
+      if (callerSignal?.aborted) throw new LlmError('OpenAI Codex search was aborted.', 'ABORTED')
+      if (timeout.aborted) throw new LlmError('OpenAI Codex search timed out. Retry the search.', 'TIMEOUT')
+      if (error instanceof LlmError) throw error
+      throw new LlmError('OpenAI Codex search connection failed. Check the connection and retry.', 'TRANSPORT')
+    }
   }
 
   /** Stream one request through the ChatGPT Codex Responses endpoint. */

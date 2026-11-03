@@ -1,7 +1,9 @@
+import z from "@deepseek-ai/schemastery";
 import { GenerateOptions, LlmAdapter, LlmModelInfo, LlmProviderInfo, LlmResolvedModelInfo, StreamChunk } from "@deepseek-ai/dsh-llm";
-import { Context } from "@deepseek-ai/cordis";
+import { Context, Volatile } from "@deepseek-ai/cordis";
 import { WebServer } from "@deepseek-ai/dsh-host-webserver";
 import { AttachmentStore } from "@deepseek-ai/dsh-attachment";
+import { WebSearchProvider, WebSearchRequest, WebSearchResult } from "@deepseek-ai/dsh-web";
 
 //#region src/models.d.ts
 /** Reasoning levels accepted by OpenAI Codex models. */
@@ -346,6 +348,26 @@ declare class AuthController {
   dispose(): Promise<void>;
 }
 //#endregion
+//#region src/native-search.d.ts
+/** Registered search provider selected by the plugin's bundle patch. */
+declare const CODEX_SEARCH_PROVIDER = "openai-codex-search";
+/** Fully resolved settings for one auxiliary Codex search request. */
+interface NativeSearchOptions {
+  model: string;
+  timeoutMs: number;
+}
+/** Registerable Harness search backend using only the plugin's ChatGPT credentials. */
+declare class CodexSearchProvider implements WebSearchProvider {
+  private readonly models;
+  private readonly resolveOptions;
+  readonly id = "openai-codex-search";
+  constructor(models: CodexModels, resolveOptions: () => Promise<NativeSearchOptions>);
+  /** Credentials are checked asynchronously by the transport, without a network probe here. */
+  available(): boolean;
+  /** Run one native search; the existing web tool records the query and normalized result. */
+  search(request: WebSearchRequest, signal?: AbortSignal): Promise<WebSearchResult>;
+}
+//#endregion
 //#region src/codex-models.d.ts
 type CodexFetch = (input: string | URL, init?: RequestInit) => Promise<Response>;
 interface CodexModelsOptions {
@@ -372,6 +394,8 @@ declare class CodexModels {
   getModel(provider: string, id: string): Promise<Model | undefined>;
   private fetchCatalog;
   private credential;
+  /** Execute native server-side web search with the same credential refresh as chat inference. */
+  searchNative(request: WebSearchRequest, options: NativeSearchOptions, callerSignal?: AbortSignal): Promise<WebSearchResult>;
   /** Stream one request through the ChatGPT Codex Responses endpoint. */
   streamSimple(model: Model, context: CodexContext, options?: ModelsSimpleStreamOptions): AsyncGenerator<AssistantMessageEvent>;
 }
@@ -441,6 +465,19 @@ declare const OAUTH_ROUTE_PATH = "/api/plugins/openai-oauth";
 declare const name = "llm-openai-oauth";
 /** The LLM registry is required; Web and attachments are optional profile capabilities. */
 declare const inject: string[];
+/** Auxiliary search settings; omitted model follows the initiating Codex model or visible catalog. */
+interface Config {
+  searchModel: Volatile<string | undefined>;
+  searchTimeoutMs: Volatile<number>;
+}
+/** Validate configurable search latency and optional model selection at plugin load. */
+declare const Config: z<Schemastery.ObjectS<NoInfer<{
+  searchModel: z<string, string, "volatile">;
+  searchTimeoutMs: z<number, number, "volatile-defined">;
+}>>, Schemastery.ObjectT<NoInfer<{
+  searchModel: z<string, string, "volatile">;
+  searchTimeoutMs: z<number, number, "volatile-defined">;
+}>>, "plain">;
 interface PluginRuntime {
   credentials: SecureCredentialStore;
   models: CodexModels;
@@ -458,6 +495,6 @@ declare function createPluginRuntime(options?: CreatePluginRuntimeOptions): Plug
 /** Refuse the unsupported remotely reachable Web posture at plugin load. */
 declare function assertLocalWebHost(host: WebServer['host']): void;
 /** Register the direct adapter and activate the local route whenever a Web Host is present. */
-declare function apply(ctx: Context): void;
+declare function apply(ctx: Context, config: Config): void;
 //#endregion
-export { AuthController, AuthControllerError, type AuthStatus, CreatePluginRuntimeOptions, CredentialStoreError, type LoginMethod, OAUTH_ROUTE_PATH, OPENAI_CODEX_PROVIDER, OpenAiCodexAdapter, type OpenAiCodexAdapterOptions, type OpenAiCodexModels, type PendingStatus, PluginRuntime, SecureCredentialStore, apply, assertLocalWebHost, createOpenAiOAuth, createPluginRuntime, inject, name };
+export { AuthController, AuthControllerError, type AuthStatus, CODEX_SEARCH_PROVIDER, CodexSearchProvider, Config, CreatePluginRuntimeOptions, CredentialStoreError, type LoginMethod, OAUTH_ROUTE_PATH, OPENAI_CODEX_PROVIDER, OpenAiCodexAdapter, type OpenAiCodexAdapterOptions, type OpenAiCodexModels, type PendingStatus, PluginRuntime, SecureCredentialStore, apply, assertLocalWebHost, createOpenAiOAuth, createPluginRuntime, inject, name };

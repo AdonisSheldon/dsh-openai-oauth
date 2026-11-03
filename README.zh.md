@@ -16,6 +16,7 @@
 - 提供 Web 设置页和 headless 登录命令
 - 自动刷新登录凭据
 - 登录后动态获取 Codex 模型目录及推理等级，并显示在 DSH 原生模型选择器中
+- 通过 ChatGPT OAuth 使用 Codex 原生网页搜索，无需 DeepSeek API Key
 - 凭据保存在本机 Harness 主目录
 
 ## 准备 DSH
@@ -25,7 +26,7 @@
 - `pnpm` 已加入 `PATH`
 - 当前具有 Codex 使用资格的 ChatGPT 账号
 
-`0.2.1` 支持 macOS 和 Linux，暂不支持 Windows。
+`0.3.0` 支持 macOS 和 Linux，暂不支持 Windows。
 
 从插件 `0.1.x` 升级时，先升级 DSH，再重新安装插件并重启 DSH。已保存的 OAuth 凭据继续使用原来的位置。
 
@@ -44,7 +45,7 @@
 包发布后执行：
 
 ```sh
-dsh plugin --profile web add dsh-openai-oauth@0.2.1
+dsh plugin --profile web add dsh-openai-oauth@0.3.0
 dsh --profile web --dump-config
 ```
 
@@ -54,7 +55,7 @@ dsh --profile web --dump-config
 pnpm install --frozen-lockfile
 pnpm run check
 pnpm pack
-dsh plugin --profile web add ./dsh-openai-oauth-0.2.1.tgz
+dsh plugin --profile web add ./dsh-openai-oauth-0.3.0.tgz
 dsh --profile web --dump-config
 ```
 
@@ -72,11 +73,28 @@ dsh --profile web --dump-config
 在 headless profile 中使用：
 
 ```sh
-dsh plugin --profile headless add ./dsh-openai-oauth-0.2.1.tgz
+dsh plugin --profile headless add ./dsh-openai-oauth-0.3.0.tgz
 dsh plugin --profile headless exec dsh-openai-login
 ```
 
 命令会询问登录方式。非交互终端需要明确传入 `--browser` 或 `--device-code`。
+
+## 网页搜索
+
+安装后，插件通过 DSH 现有扩展接口把网页搜索提供方设为 `openai-codex-search`，无需修改 Harness 源码。登录 ChatGPT 后，让 Agent 搜索网页即可；原有搜索工具会展示结果和来源链接，并将查询与结果记录在会话中。网页抓取仍使用 profile 原有的抓取提供方。
+
+搜索使用 Codex 服务端的原生 `web_search`，每个查询会额外发起一次模型请求，占用当前 ChatGPT 账号的额度。搜索词会发送给 OpenAI；不会发送整段对话。搜索或授权失败时直接报错，不会回退到 DeepSeek API。
+
+默认使用发起搜索的会话当前选择的 Codex 模型；其他模型会话或无会话调用则使用账号模型目录中的第一个可见模型。模型是否支持搜索取决于 OpenAI。需要固定搜索模型或调整超时时间时，在 profile 的用户配置中合并以下设置：
+
+```yaml
+- id: llm-openai-oauth
+  config:
+    searchModel: gpt-6.1-sol # 替换为当前账号可用且支持搜索的模型 ID
+    searchTimeoutMs: 90000
+```
+
+`searchModel` 可省略，`searchTimeoutMs` 默认 90000 毫秒，最小 1000 毫秒。要继续使用其他搜索提供方，可在 profile 用户配置中覆盖 `web.config.searchProvider`；卸载插件后恢复原 profile 的选择。
 
 ## 更新与卸载
 

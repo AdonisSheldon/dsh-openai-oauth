@@ -16,6 +16,7 @@ Sign in to ChatGPT from DeepSeek Harness and use available Codex models without 
 - Web settings and a headless login command
 - Automatic token refresh
 - Models and reasoning levels discovered from the signed-in account’s Codex catalog
+- Codex native web search through ChatGPT OAuth, without a DeepSeek API key
 - Credentials stored locally under the Harness home
 
 ## Requirements
@@ -25,7 +26,7 @@ Sign in to ChatGPT from DeepSeek Harness and use available Codex models without 
 - `pnpm` on `PATH`
 - A ChatGPT account with Codex access
 
-Version `0.2.1` supports macOS and Linux. Windows support is not included yet.
+Version `0.3.0` supports macOS and Linux. Windows support is not included yet.
 
 When upgrading from plugin `0.1.x`, upgrade DSH first, reinstall the plugin, then restart DSH. Saved OAuth credentials remain in the same location.
 
@@ -44,7 +45,7 @@ When it finishes, you only need to approve any DSH restart and complete the Chat
 After the package is published:
 
 ```sh
-dsh plugin --profile web add dsh-openai-oauth@0.2.1
+dsh plugin --profile web add dsh-openai-oauth@0.3.0
 dsh --profile web --dump-config
 ```
 
@@ -54,7 +55,7 @@ dsh --profile web --dump-config
 pnpm install --frozen-lockfile
 pnpm run check
 pnpm pack
-dsh plugin --profile web add ./dsh-openai-oauth-0.2.1.tgz
+dsh plugin --profile web add ./dsh-openai-oauth-0.3.0.tgz
 dsh --profile web --dump-config
 ```
 
@@ -72,11 +73,28 @@ Browser login waits for a callback on `127.0.0.1:1455`. Use Device Code when tha
 For a headless profile:
 
 ```sh
-dsh plugin --profile headless add ./dsh-openai-oauth-0.2.1.tgz
+dsh plugin --profile headless add ./dsh-openai-oauth-0.3.0.tgz
 dsh plugin --profile headless exec dsh-openai-login
 ```
 
 The command asks which login method to use. Non-interactive terminals must pass `--browser` or `--device-code`.
+
+## Web search
+
+The bundle selects `openai-codex-search` through the existing DSH web provider interface, without changing Harness source. After ChatGPT sign-in, ask the Agent to search the web. The standard search tool displays results and source links and records the query and result in the Session. Web fetching keeps the profile's existing fetch provider.
+
+Each query makes an additional Codex model request with the native server-side `web_search` tool and uses the signed-in ChatGPT account's quota. Queries are sent to OpenAI; the full conversation is not sent. Search and authentication failures are reported directly, without falling back to DeepSeek API access.
+
+Search follows the initiating Session's selected Codex model. Other model routes and calls outside a Session use the first visible model in the account catalog. Search availability depends on OpenAI and the selected model. To pin a search model or change the timeout, merge these settings into the profile's user configuration:
+
+```yaml
+- id: llm-openai-oauth
+  config:
+    searchModel: gpt-6.1-sol # Replace with an available model that supports search
+    searchTimeoutMs: 90000
+```
+
+`searchModel` is optional. `searchTimeoutMs` defaults to 90000 milliseconds, with a minimum of 1000. To retain a different search provider, override `web.config.searchProvider` in the profile's user configuration. Uninstalling restores the original profile selection.
 
 ## Update and uninstall
 

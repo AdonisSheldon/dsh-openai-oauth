@@ -8,6 +8,7 @@ The task is complete when all of the following are true:
 
 - the requested profile contains one `dsh-openai-oauth` installation;
 - the composed DSH configuration includes the plugin;
+- the composed `web` configuration selects `openai-codex-search`, unless the user explicitly configured another search provider;
 - no Harness source file, other plugin, or other profile was changed;
 - the user knows whether DSH must be restarted and where to finish OAuth login.
 
@@ -42,6 +43,8 @@ dsh --profile web --dump-config
 Substitute the user-selected profile when necessary. Substitute `pnpm dsh` for `dsh` when using the source-checkout launcher. When the user specifies a tag or commit, add `#<tag-or-commit>` to the GitHub package reference.
 
 Inspect the resulting configuration and confirm that `dsh-openai-oauth` occurs once. Do not count a partial download or a package-manager entry as successful registration.
+
+The plugin's bundle also selects Codex native web search. It requires ChatGPT sign-in, uses the account's quota, and needs no DeepSeek API key. Preserve an explicit user override of the search provider.
 
 ## User handoff
 
