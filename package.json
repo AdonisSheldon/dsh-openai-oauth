@@ -1,6 +1,6 @@
 {
   "name": "dsh-openai-oauth",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Self-contained OpenAI Codex OAuth provider for DeepSeek Harness",
   "repository": {
     "type": "git",

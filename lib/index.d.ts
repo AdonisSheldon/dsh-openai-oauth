@@ -5,7 +5,7 @@ import { AttachmentStore } from "@deepseek-ai/dsh-attachment";
 
 //#region src/models.d.ts
 /** Reasoning levels accepted by OpenAI Codex models. */
-type ThinkingLevel = 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+type ThinkingLevel = 'off' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | 'ultra';
 /** The single wire API implemented by this plugin. */
 type Api = 'openai-codex-responses' | 'dsh-foreign';
 /** Plugin-owned model metadata used for routing and capability validation. */
@@ -24,8 +24,9 @@ interface Model<TApi extends Api = Api> {
     cacheRead: number;
     cacheWrite: number;
   };
-  contextWindow: number;
-  maxTokens: number;
+  contextWindow?: number;
+  maxTokens?: number;
+  hidden?: boolean;
 }
 interface TextContent {
   type: 'text';
@@ -168,8 +169,8 @@ type AssistantMessageEvent = {
 //#region src/adapter.d.ts
 /** Minimum model collection used by the route-specific adapter. */
 interface OpenAiCodexModels {
-  getModels(provider?: string): readonly Model<Api>[];
-  getModel(provider: string, id: string): Model<Api> | undefined;
+  getModels(provider?: string): readonly Model<Api>[] | Promise<readonly Model<Api>[]>;
+  getModel(provider: string, id: string): Model<Api> | undefined | Promise<Model<Api> | undefined>;
   streamSimple(model: Model<Api>, context: CodexContext, options?: ModelsSimpleStreamOptions): AsyncIterable<AssistantMessageEvent>;
 }
 interface OpenAiCodexAdapterOptions {
@@ -358,15 +359,18 @@ declare class CodexModels {
   private readonly options;
   private readonly fetch;
   private readonly now;
+  private catalog;
+  private pending;
   /**
    * @param credentials - plugin-owned credential persistence.
    * @param options - direct HTTP and refresh operations.
    */
   constructor(credentials: CredentialStore, options: CodexModelsOptions);
-  /** Return models from the plugin's versioned catalog. */
-  getModels(provider?: string): readonly Model[];
-  /** Resolve one exact model owned by the provider route. */
-  getModel(provider: string, id: string): Model | undefined;
+  /** Refresh the account's visible catalog; concurrent requests share one fetch. Signed-out callers get no models. */
+  getModels(provider?: string): Promise<readonly Model[]>;
+  /** Resolve metadata from the current account's most recent catalog, fetching it on first use. */
+  getModel(provider: string, id: string): Promise<Model | undefined>;
+  private fetchCatalog;
   private credential;
   /** Stream one request through the ChatGPT Codex Responses endpoint. */
   streamSimple(model: Model, context: CodexContext, options?: ModelsSimpleStreamOptions): AsyncGenerator<AssistantMessageEvent>;

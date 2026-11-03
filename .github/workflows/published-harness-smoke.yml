@@ -66,7 +66,7 @@ jobs:
           set -euo pipefail
           host_root="$RUNNER_TEMP/host"
           dsh_home="$RUNNER_TEMP/dsh-home"
-          tarball="$RUNNER_TEMP/package/dsh-openai-oauth-0.2.0.tgz"
+          tarball="$RUNNER_TEMP/package/dsh-openai-oauth-0.2.1.tgz"
 
           npm install --prefix "$host_root" --prefer-offline --no-audit --no-fund "@deepseek-ai/dsh@$DSH_VERSION"
           DSH_HOME="$dsh_home" "$host_root/node_modules/.bin/dsh" plugin --profile web add "$tarball"
