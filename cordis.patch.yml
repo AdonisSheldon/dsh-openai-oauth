@@ -1,3 +1,6 @@
+- id: web
+  config:
+    searchProvider: openai-codex-search
 - insert:
     - id: llm-openai-oauth
       name: dsh-openai-oauth

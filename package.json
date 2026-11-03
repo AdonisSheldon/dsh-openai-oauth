@@ -1,6 +1,6 @@
 {
   "name": "dsh-openai-oauth",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Self-contained OpenAI Codex OAuth provider for DeepSeek Harness",
   "repository": {
     "type": "git",
@@ -84,7 +84,10 @@
     "@deepseek-ai/dsh-host-webserver": "0.2.1-rc.5",
     "@deepseek-ai/dsh-llm": "0.2.1-rc.5",
     "@deepseek-ai/dsh-timeout": "0.2.1-rc.5",
-    "react": "^18.3.1"
+    "react": "^18.3.1",
+    "@deepseek-ai/dsh-web": "0.2.1-rc.5",
+    "@deepseek-ai/dsh-agent": "0.2.1-rc.5",
+    "@deepseek-ai/schemastery": "3.18.5"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/cordis": {
@@ -122,6 +125,15 @@
     },
     "react": {
       "optional": true
+    },
+    "@deepseek-ai/dsh-web": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-agent": {
+      "optional": true
+    },
+    "@deepseek-ai/schemastery": {
+      "optional": true
     }
   },
   "devDependencies": {
@@ -141,7 +153,10 @@
     "@types/react": "18.3.28",
     "react": "18.3.1",
     "tsdown": "0.22.2",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "@deepseek-ai/dsh-web": "0.2.1-rc.5",
+    "@deepseek-ai/dsh-agent": "0.2.1-rc.5",
+    "@deepseek-ai/schemastery": "3.18.5"
   },
   "packageManager": "pnpm@11.1.3"
 }

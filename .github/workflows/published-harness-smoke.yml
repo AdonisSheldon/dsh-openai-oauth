@@ -66,7 +66,7 @@ jobs:
           set -euo pipefail
           host_root="$RUNNER_TEMP/host"
           dsh_home="$RUNNER_TEMP/dsh-home"
-          tarball="$RUNNER_TEMP/package/dsh-openai-oauth-0.2.1.tgz"
+          tarball="$RUNNER_TEMP/package/dsh-openai-oauth-0.3.0.tgz"
 
           npm install --prefix "$host_root" --prefer-offline --no-audit --no-fund "@deepseek-ai/dsh@$DSH_VERSION"
           DSH_HOME="$dsh_home" "$host_root/node_modules/.bin/dsh" plugin --profile web add "$tarball"
@@ -80,6 +80,7 @@ jobs:
           profile_dump="$RUNNER_TEMP/profile.yml"
           DSH_HOME="$dsh_home" "$host_root/node_modules/.bin/dsh" --profile web --dump-config >"$profile_dump"
           grep -q 'dsh-openai-oauth' "$profile_dump"
+          grep -q 'openai-codex-search' "$profile_dump"
           login_help="$RUNNER_TEMP/login-help.txt"
           DSH_HOME="$dsh_home" "$dsh_home/profiles/web/node_modules/.bin/dsh-openai-login" --help >"$login_help"
           grep -q '^Usage: dsh-openai-login' "$login_help"
@@ -118,6 +119,7 @@ jobs:
           headless_dump="$RUNNER_TEMP/headless-profile.yml"
           DSH_HOME="$headless_home" "$host_root/node_modules/.bin/dsh" --profile headless --dump-config >"$headless_dump"
           grep -q 'dsh-openai-oauth' "$headless_dump"
+          grep -q 'openai-codex-search' "$headless_dump"
           test -x "$headless_home/profiles/headless/node_modules/.bin/dsh-openai-login"
           headless_help="$RUNNER_TEMP/headless-login-help.txt"
           DSH_HOME="$headless_home" "$headless_home/profiles/headless/node_modules/.bin/dsh-openai-login" --help >"$headless_help"
