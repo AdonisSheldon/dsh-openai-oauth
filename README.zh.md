@@ -20,12 +20,14 @@
 
 ## 准备 DSH
 
-- DeepSeek Harness `0.1.0-rc.8`
+- DeepSeek Harness `0.2.1-rc.5`
 - Node.js `^22.19.0` 或 `>=24.0.0`
 - `pnpm` 已加入 `PATH`
 - 当前具有 Codex 使用资格的 ChatGPT 账号
 
-`0.1.0` 支持 macOS 和 Linux，暂不支持 Windows。
+`0.2.0` 支持 macOS 和 Linux，暂不支持 Windows。
+
+从插件 `0.1.x` 升级时，先升级 DSH，再重新安装插件并重启 DSH。已保存的 OAuth 凭据继续使用原来的位置。
 
 ## 安装
 
@@ -42,7 +44,7 @@
 包发布后执行：
 
 ```sh
-dsh plugin --profile web add dsh-openai-oauth@0.1.0
+dsh plugin --profile web add dsh-openai-oauth@0.2.0
 dsh --profile web --dump-config
 ```
 
@@ -52,7 +54,7 @@ dsh --profile web --dump-config
 pnpm install --frozen-lockfile
 pnpm run check
 pnpm pack
-dsh plugin --profile web add ./dsh-openai-oauth-0.1.0.tgz
+dsh plugin --profile web add ./dsh-openai-oauth-0.2.0.tgz
 dsh --profile web --dump-config
 ```
 
@@ -70,7 +72,7 @@ dsh --profile web --dump-config
 在 headless profile 中使用：
 
 ```sh
-dsh plugin --profile headless add ./dsh-openai-oauth-0.1.0.tgz
+dsh plugin --profile headless add ./dsh-openai-oauth-0.2.0.tgz
 dsh plugin --profile headless exec dsh-openai-login
 ```
 

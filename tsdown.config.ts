@@ -11,7 +11,6 @@ const CLIENT_EXTERNALS: readonly string[] = [
   '@deepseek-ai/dsh-client-ui-primitives',
   '@deepseek-ai/dsh-client-ui-attachment',
   '@deepseek-ai/dsh-client-schema-form',
-  '@deepseek-ai/dsh-client-runtime/client',
 ]
 
 export default defineConfig([
@@ -25,6 +24,8 @@ export default defineConfig([
     clean: false,
     fixedExtension: false,
     hash: false,
+    deps: { alwaysBundle: ['@deepseek-ai/dsh-home-paths'] },
+    outputOptions: { chunkFileNames: 'src.js' },
   },
   {
     entry: { client: 'src/client/index.tsx' },

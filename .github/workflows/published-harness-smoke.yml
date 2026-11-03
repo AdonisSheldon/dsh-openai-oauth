@@ -40,7 +40,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.npm
-          key: ${{ runner.os }}-node24-npm-dsh-0.1.0-rc.8
+          key: ${{ runner.os }}-node24-npm-dsh-0.2.1-rc.5
           restore-keys: |
             ${{ runner.os }}-node24-npm-dsh-
 
@@ -60,13 +60,13 @@ jobs:
 
       - name: Install and boot in a clean published Harness
         env:
-          DSH_VERSION: 0.1.0-rc.8
+          DSH_VERSION: 0.2.1-rc.5
           PORT: '18765'
         run: |
           set -euo pipefail
           host_root="$RUNNER_TEMP/host"
           dsh_home="$RUNNER_TEMP/dsh-home"
-          tarball="$RUNNER_TEMP/package/dsh-openai-oauth-0.1.0.tgz"
+          tarball="$RUNNER_TEMP/package/dsh-openai-oauth-0.2.0.tgz"
 
           npm install --prefix "$host_root" --prefer-offline --no-audit --no-fund "@deepseek-ai/dsh@$DSH_VERSION"
           DSH_HOME="$dsh_home" "$host_root/node_modules/.bin/dsh" plugin --profile web add "$tarball"
