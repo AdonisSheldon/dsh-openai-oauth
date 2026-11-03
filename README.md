@@ -20,12 +20,14 @@ Sign in to ChatGPT from DeepSeek Harness and use available Codex models without 
 
 ## Requirements
 
-- DeepSeek Harness `0.1.0-rc.8`
+- DeepSeek Harness `0.2.1-rc.5`
 - Node.js `^22.19.0` or `>=24.0.0`
 - `pnpm` on `PATH`
 - A ChatGPT account with Codex access
 
-Version `0.1.0` supports macOS and Linux. Windows support is not included yet.
+Version `0.2.0` supports macOS and Linux. Windows support is not included yet.
+
+When upgrading from plugin `0.1.x`, upgrade DSH first, reinstall the plugin, then restart DSH. Saved OAuth credentials remain in the same location.
 
 ## Install
 
@@ -42,7 +44,7 @@ When it finishes, you only need to approve any DSH restart and complete the Chat
 After the package is published:
 
 ```sh
-dsh plugin --profile web add dsh-openai-oauth@0.1.0
+dsh plugin --profile web add dsh-openai-oauth@0.2.0
 dsh --profile web --dump-config
 ```
 
@@ -52,7 +54,7 @@ dsh --profile web --dump-config
 pnpm install --frozen-lockfile
 pnpm run check
 pnpm pack
-dsh plugin --profile web add ./dsh-openai-oauth-0.1.0.tgz
+dsh plugin --profile web add ./dsh-openai-oauth-0.2.0.tgz
 dsh --profile web --dump-config
 ```
 
@@ -70,7 +72,7 @@ Browser login waits for a callback on `127.0.0.1:1455`. Use Device Code when tha
 For a headless profile:
 
 ```sh
-dsh plugin --profile headless add ./dsh-openai-oauth-0.1.0.tgz
+dsh plugin --profile headless add ./dsh-openai-oauth-0.2.0.tgz
 dsh plugin --profile headless exec dsh-openai-login
 ```
 

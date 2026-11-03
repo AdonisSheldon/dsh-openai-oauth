@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { ClientContext } from "@deepseek-ai/dsh-client-runtime/client";
+import { Context } from "@deepseek-ai/cordis";
 import { SettingsSectionOwnerProps } from "@deepseek-ai/dsh-client-ui-settings/client";
 
 //#region src/client/locales.d.ts
@@ -55,6 +55,6 @@ declare function OpenAiOAuthSection({
 }: OpenAiOAuthSectionProps): ReactNode;
 declare const inject: string[];
 /** Register bilingual copy and the dedicated settings page. */
-declare function apply(ctx: ClientContext): void;
+declare function apply(ctx: Context): void;
 //#endregion
 export { OpenAiOAuthSection, OpenAiOAuthSectionInjected, OpenAiOAuthSectionProps, apply, inject };

@@ -1,8 +1,17 @@
 import { createInterface } from 'node:readline/promises'
 import { stdin, stdout, stderr } from 'node:process'
 import type { AuthStatus, LoginMethod, PendingStatus } from './auth-controller.js'
-import { AuthControllerError } from './auth-controller.js'
-import { createPluginRuntime } from './index.js'
+import { AuthController, AuthControllerError } from './auth-controller.js'
+import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
+import { SecureCredentialStore } from './credential-store.js'
+import { createOpenAiOAuth } from './openai-oauth.js'
+
+/** Construct login without loading Host-only LLM or Web services. */
+function createLoginRuntime(): { controller: AuthController } {
+  const credentials = new SecureCredentialStore(resolveDshHome())
+  const oauth = createOpenAiOAuth()
+  return { controller: new AuthController(credentials, { login: interaction => oauth.login(interaction) }) }
+}
 
 const USAGE = `Usage: dsh-openai-login [--browser | --device-code]
 
@@ -152,7 +161,7 @@ export async function runLogin(
         return 0
       }
       const method = await selectMethod(options, io)
-      runtime = (dependencies.createRuntime ?? createPluginRuntime)()
+      runtime = (dependencies.createRuntime ?? createLoginRuntime)()
       const pending = await runtime.controller.start(method)
       attemptId = pending.attemptId
       printPending(pending, io)

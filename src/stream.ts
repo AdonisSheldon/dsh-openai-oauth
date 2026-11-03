@@ -1,6 +1,6 @@
 /** OpenAI Codex-to-Harness stream conversion. */
 import {
-  CallId,
+  ToolCallId,
   CONTEXT_WINDOW_EXCEEDED_CODE,
   EMPTY_RESPONSE_CODE,
   LlmError,
@@ -95,7 +95,7 @@ export async function* toStreamChunks(
         yield {
           type: 'tool-call-delta',
           index: event.contentIndex,
-          id: CallId(tool?.id ?? ''),
+          id: ToolCallId(tool?.id ?? ''),
           ...tool?.name === undefined || tool.name.length === 0 ? {} : { name: tool.name },
           argumentsDelta: event.delta,
         }
@@ -106,7 +106,7 @@ export async function* toStreamChunks(
         index: event.contentIndex,
         block: {
           type: 'tool-call',
-          id: CallId(event.toolCall.id),
+          id: ToolCallId(event.toolCall.id),
           name: event.toolCall.name,
           arguments: JSON.stringify(event.toolCall.arguments),
         },
